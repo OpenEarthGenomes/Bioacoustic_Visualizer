@@ -5,7 +5,7 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Lehetővé teszi a kézi indítást a GitHub felületén
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,8 +22,17 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    # Ez a lépés létrehozza a hiányzó gradlew fájlt automatikusan
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    # Ezután már nem fog hibát dobni a chmod
     - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      run: |
+        if [ ! -f gradlew ]; then
+          gradle wrapper
+        fi
+        chmod +x gradlew
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug --stacktrace
