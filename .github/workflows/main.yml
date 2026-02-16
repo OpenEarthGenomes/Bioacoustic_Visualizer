@@ -1,18 +1,18 @@
-name: Android 16 Build - Bioacoustic Project
+name: Android 16 BioVisualizer Build
 
 on:
   push:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Kézi indítási lehetőség
+  workflow_dispatch: # Lehetővé teszi a kézi indítást a GitHub felületén
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout the code
+    - name: Checkout Repository
       uses: actions/checkout@v4
 
     - name: Set up JDK 21
@@ -25,12 +25,12 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
 
-    - name: Upload APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Bioacoustic-3D-Dev-APK
+        name: BioVisualizer-Debug-APK
         path: app/build/outputs/apk/debug/app-debug.apk
-
+        retention-days: 7
