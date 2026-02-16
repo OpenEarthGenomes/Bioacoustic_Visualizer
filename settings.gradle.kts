@@ -1,3 +1,5 @@
+// Bioacoustic_Visualizer/settings.gradle.kts
+
 pluginManagement {
     repositories {
         google()
