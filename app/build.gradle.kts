@@ -5,28 +5,21 @@ plugins {
 
 android {
     namespace = "com.bioacoustic.visualizer"
-    compileSdk = 35
+    compileSdk = 34 // Stabil SDK verzió
 
     defaultConfig {
         applicationId = "com.bioacoustic.visualizer"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
     
@@ -35,11 +28,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+    kotlinOptions { jvmTarget = "1.8" }
 
-    // Itt javítottam a deprecated hibát, amit a napló írt
     androidResources {
         noCompress += listOf("filamat", "glb", "gltf")
     }
@@ -48,17 +38,15 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
+    implementation("com.google.android.material:material:1.10.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // JAVÍTVA: 1.47.0-ra váltottunk, mert az 1.48.0-t nem találta a szerver
-    implementation("com.google.android.filament:filament-android:1.47.0")
-    implementation("com.google.android.filament:filament-utils-android:1.47.0")
+    // A legstabilabb Filament verzió, amit biztosan megtalál
+    implementation("com.google.android.filament:filament-android:1.32.2")
+    implementation("com.google.android.filament:filament-utils-android:1.32.2")
     implementation("com.github.wendykierp:JTransforms:3.1")
 
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 }
+
