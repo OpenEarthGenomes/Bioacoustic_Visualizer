@@ -39,8 +39,9 @@ android {
         jvmTarget = "1.8"
     }
 
-    aaptOptions {
-        noCompress("filamat", "glb", "gltf")
+    // Itt javítottam a deprecated hibát, amit a napló írt
+    androidResources {
+        noCompress += listOf("filamat", "glb", "gltf")
     }
 }
 
@@ -52,9 +53,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Motorok
-    implementation("com.google.android.filament:filament-android:1.48.0")
-    implementation("com.google.android.filament:filament-utils-android:1.48.0")
+    // JAVÍTVA: 1.47.0-ra váltottunk, mert az 1.48.0-t nem találta a szerver
+    implementation("com.google.android.filament:filament-android:1.47.0")
+    implementation("com.google.android.filament:filament-utils-android:1.47.0")
     implementation("com.github.wendykierp:JTransforms:3.1")
 
     testImplementation("junit:junit:4.13.2")
