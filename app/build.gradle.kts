@@ -1,11 +1,11 @@
 plugins {
     id("com.android.application") version "8.5.0"
-    id("org.jetbrains.kotlin.android") version "1.9.22"
+    id("org.jetbrains.kotlin.android") version "1.9.23" // 1.9.22-ről frissítve!
 }
 
 android {
     namespace = "com.bioacoustic.visualizer"
-    compileSdk = 35 // Android 15/16 alap
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.bioacoustic.visualizer"
@@ -14,6 +14,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -51,9 +52,11 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.10.0")
     implementation(platform("androidx.compose:compose-bom:2025.01.00"))
     implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     
-    // Motorok
+    // Filament és Audio motorok
     implementation("com.google.android.filament:filament-android:1.69.2")
     implementation("com.github.wendykierp:JTransforms:3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
