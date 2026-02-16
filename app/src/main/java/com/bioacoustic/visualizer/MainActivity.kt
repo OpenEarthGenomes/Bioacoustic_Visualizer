@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.SurfaceView
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,66 +13,52 @@ import androidx.lifecycle.lifecycleScope
 import com.bioacoustic.visualizer.core.audio.AudioAnalyzer
 import com.bioacoustic.visualizer.core.render.FilamentPointCloudRenderer
 import com.google.android.filament.Engine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
     private lateinit var engine: Engine
     private lateinit var renderer3D: FilamentPointCloudRenderer
     private lateinit var audioAnalyzer: AudioAnalyzer
     private lateinit var surfaceView: SurfaceView
 
-    // Mikrofon engedély kérése modern módon
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            startLogic()
-        } else {
-            Toast.makeText(this, "Mikrofon engedély szükséges a vizualizációhoz!", Toast.LENGTH_LONG).show()
-        }
+    ) { isGranted ->
+        if (isGranted) startLogic() else Toast.makeText(this, "Engedély kell!", Toast.LENGTH_SHORT).show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Edge-to-edge mód a Samsung A35-höz
+        window.setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
 
-        // SurfaceView létrehozása a Filament számára
         surfaceView = SurfaceView(this)
         setContentView(surfaceView)
 
-        // Engedély ellenőrzése
-        when {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == 
-                PackageManager.PERMISSION_GRANTED -> {
-                startLogic()
-            }
-            else -> {
-                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            startLogic()
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
     private fun startLogic() {
-        // 1. Filament motor indítása
         engine = Engine.create()
         renderer3D = FilamentPointCloudRenderer(surfaceView, engine)
-
-        // 2. Audio elemző indítása
         audioAnalyzer = AudioAnalyzer()
+
         audioAnalyzer.onDataReady = { magnitudes ->
-            // Itt küldjük az adatokat a 3D-nek
-            // renderer3D.updatePoints(magnitudes) 
+            runOnUiThread { renderer3D.updateVisuals(magnitudes) }
         }
+        
         audioAnalyzer.startAnalysis(lifecycleScope)
 
-        // 3. Renderelési ciklus indítása
-        startRenderLoop()
-    }
-
-    private fun startRenderLoop() {
         lifecycleScope.launch {
             while (true) {
                 renderer3D.render(System.nanoTime())
-                kotlinx.coroutines.delay(16) // ~60 FPS
+                delay(16)
             }
         }
     }
