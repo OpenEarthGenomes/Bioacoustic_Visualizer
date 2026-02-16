@@ -1,36 +1,84 @@
 package com.bioacoustic.visualizer
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.SurfaceView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.bioacoustic.visualizer.core.audio.AudioAnalyzer
+import com.bioacoustic.visualizer.core.render.FilamentPointCloudRenderer
+import com.google.android.filament.Engine
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var engine: Engine
+    private lateinit var renderer3D: FilamentPointCloudRenderer
+    private lateinit var audioAnalyzer: AudioAnalyzer
+    private lateinit var surfaceView: SurfaceView
+
+    // Mikrofon engedély kérése modern módon
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            startLogic()
+        } else {
+            Toast.makeText(this, "Mikrofon engedély szükséges a vizualizációhoz!", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            val permissionLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { isGranted ->
-                // Engedély kezelése
-            }
 
-            LaunchedEffect(Unit) {
-                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
+        // SurfaceView létrehozása a Filament számára
+        surfaceView = SurfaceView(this)
+        setContentView(surfaceView)
 
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "BioVisualizer 3D - Build OK")
+        // Engedély ellenőrzése
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == 
+                PackageManager.PERMISSION_GRANTED -> {
+                startLogic()
+            }
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             }
         }
+    }
+
+    private fun startLogic() {
+        // 1. Filament motor indítása
+        engine = Engine.create()
+        renderer3D = FilamentPointCloudRenderer(surfaceView, engine)
+
+        // 2. Audio elemző indítása
+        audioAnalyzer = AudioAnalyzer()
+        audioAnalyzer.onDataReady = { magnitudes ->
+            // Itt küldjük az adatokat a 3D-nek
+            // renderer3D.updatePoints(magnitudes) 
+        }
+        audioAnalyzer.startAnalysis(lifecycleScope)
+
+        // 3. Renderelési ciklus indítása
+        startRenderLoop()
+    }
+
+    private fun startRenderLoop() {
+        lifecycleScope.launch {
+            while (true) {
+                renderer3D.render(System.nanoTime())
+                kotlinx.coroutines.delay(16) // ~60 FPS
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::audioAnalyzer.isInitialized) audioAnalyzer.stop()
+        if (::engine.isInitialized) engine.destroy()
     }
 }
