@@ -11,7 +11,6 @@ import com.bioacoustic.visualizer.core.render.FilamentPointCloudRenderer
 import com.bioacoustic.visualizer.core.stream.VisualDataStreamer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
-// EZT AZ EGY SORT ADTAM HOZZÁ:
 import com.bioacoustic.visualizer.R
 
 class MainActivity : AppCompatActivity() {
@@ -23,10 +22,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Most már tudni fogja, mi az az R.layout.activity_main
+        // Ez a sor keresi az R.layout-ot
         setContentView(R.layout.activity_main)
         
-        // És mi az az R.id.surfaceView
+        // Ez a sor keresi az R.id-t
         val surfaceView = findViewById<SurfaceView>(R.id.surfaceView)
 
         renderer = FilamentPointCloudRenderer(surfaceView)
