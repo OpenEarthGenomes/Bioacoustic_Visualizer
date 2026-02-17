@@ -11,6 +11,8 @@ import com.bioacoustic.visualizer.core.render.FilamentPointCloudRenderer
 import com.bioacoustic.visualizer.core.stream.VisualDataStreamer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+// EZT AZ EGY SORT ADTAM HOZZÁ:
+import com.bioacoustic.visualizer.R
 
 class MainActivity : AppCompatActivity() {
     private val audioAnalyzer = AudioAnalyzer(sampleRate = 44100, bufferSize = 1024)
@@ -21,15 +23,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Hagyományos nézet beállítás
+        // Most már tudni fogja, mi az az R.layout.activity_main
         setContentView(R.layout.activity_main)
         
-        // Megkeressük a SurfaceView-t az azonosítója alapján
+        // És mi az az R.id.surfaceView
         val surfaceView = findViewById<SurfaceView>(R.id.surfaceView)
 
         renderer = FilamentPointCloudRenderer(surfaceView)
 
-        // Mikrofon engedély kérése
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
         } else {
