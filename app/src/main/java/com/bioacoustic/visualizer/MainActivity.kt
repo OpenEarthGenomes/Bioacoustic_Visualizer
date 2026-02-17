@@ -3,69 +3,47 @@ package com.bioacoustic.visualizer
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.SurfaceView
-import android.view.WindowManager
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import com.bioacoustic.visualizer.core.audio.AudioAnalyzer
 import com.bioacoustic.visualizer.core.render.FilamentPointCloudRenderer
-import com.google.android.filament.Engine
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.bioacoustic.visualizer.core.stream.VisualDataStreamer
+import com.bioacoustic.visualizer.databinding.ActivityMainBinding
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
 
-class MainActivity : ComponentActivity() {
-    private lateinit var engine: Engine
-    private lateinit var renderer3D: FilamentPointCloudRenderer
-    private lateinit var audioAnalyzer: AudioAnalyzer
-    private lateinit var surfaceView: SurfaceView
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) startLogic() else Toast.makeText(this, "Engedély kell!", Toast.LENGTH_SHORT).show()
-    }
+class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
+    private val audioAnalyzer = AudioAnalyzer()
+    private lateinit var renderer: FilamentPointCloudRenderer
+    private val streamer = VisualDataStreamer(audioAnalyzer)
+    private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Edge-to-edge mód a Samsung A35-höz
-        window.setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        surfaceView = SurfaceView(this)
-        setContentView(surfaceView)
+        renderer = FilamentPointCloudRenderer(binding.surfaceView)
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            startLogic()
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
         } else {
-            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            startVisualization()
         }
     }
 
-    private fun startLogic() {
-        engine = Engine.create()
-        renderer3D = FilamentPointCloudRenderer(surfaceView, engine)
-        audioAnalyzer = AudioAnalyzer()
-
-        audioAnalyzer.onDataReady = { magnitudes ->
-            runOnUiThread { renderer3D.updateVisuals(magnitudes) }
-        }
-        
-        audioAnalyzer.startAnalysis(lifecycleScope)
-
-        lifecycleScope.launch {
-            while (true) {
-                renderer3D.render(System.nanoTime())
-                delay(16)
+    private fun startVisualization() {
+        scope.launch {
+            streamer.getVisualData().collectLatest { points ->
+                renderer.updatePoints(points)
             }
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::audioAnalyzer.isInitialized) audioAnalyzer.stop()
-        if (::engine.isInitialized) engine.destroy()
+        renderer.release()
+        scope.cancel()
     }
 }
