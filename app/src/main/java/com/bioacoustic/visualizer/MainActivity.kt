@@ -3,6 +3,7 @@ package com.bioacoustic.visualizer
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.SurfaceView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.bioacoustic.visualizer.core.audio.AudioAnalyzer
@@ -12,10 +13,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : AppCompatActivity() {
-    // Eltávolítottuk a fix binding importot, mert a fordító nem találta
-    private var _binding: com.bioacoustic.visualizer.databinding.ActivityMainBinding? = null
-    private val binding get() = _binding!!
-
     private val audioAnalyzer = AudioAnalyzer(sampleRate = 44100, bufferSize = 1024)
     private lateinit var renderer: FilamentPointCloudRenderer
     private val streamer = VisualDataStreamer(audioAnalyzer)
@@ -24,12 +21,15 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Közvetlen elérési úttal hívjuk meg a bindingot
-        _binding = com.bioacoustic.visualizer.databinding.ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        // Hagyományos nézet beállítás
+        setContentView(R.layout.activity_main)
+        
+        // Megkeressük a SurfaceView-t az azonosítója alapján
+        val surfaceView = findViewById<SurfaceView>(R.id.surfaceView)
 
-        renderer = FilamentPointCloudRenderer(binding.surfaceView)
+        renderer = FilamentPointCloudRenderer(surfaceView)
 
+        // Mikrofon engedély kérése
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
         } else {
@@ -59,6 +59,5 @@ class MainActivity : AppCompatActivity() {
         audioAnalyzer.stop()
         renderer.release()
         scope.cancel()
-        _binding = null
     }
 }
