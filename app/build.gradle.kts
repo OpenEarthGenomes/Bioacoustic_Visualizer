@@ -5,55 +5,59 @@ plugins {
 
 android {
     namespace = "com.bioacoustic.visualizer"
-    compileSdk = 34 // Maradjunk a stabil 34-en, a kollégád tanácsára
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.bioacoustic.visualizer"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
-        
-        vectorDrawables.useSupportLibrary = true
+        versionName = "1.0-Fixed"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
-    
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 
-    // A kollégád által javasolt modern forma a régi aapt helyett
+    buildFeatures {
+        viewBinding = true
+    }
+
     androidResources {
         noCompress += listOf("filamat", "glb", "gltf")
     }
 }
 
 dependencies {
-    // Alap Android könyvtárak
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.10.0")
+    implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     
-    // Filament 3D motor - a 1.47.0-ás verzió betonbiztos
-    implementation("com.google.android.filament:filament-android:1.47.0")
-    implementation("com.google.android.filament:filament-utils-android:1.47.0")
-    
-    // Hangfeldolgozás
+    // 3D és hang könyvtárak
+    implementation("com.google.android.filament:filament-android:1.45.0")
+    implementation("com.google.android.filament:filament-utils-android:1.45.0")
     implementation("com.github.wendykierp:JTransforms:3.1")
-    
-    // Coroutines a háttérfolyamatokhoz
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
