@@ -4,13 +4,9 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="@color/ic_launcher_background"
-        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M31,31h46v46h-46z m2,2v42h42v-42z" />
     <path
-        android:strokeColor="@color/white"
-        android:strokeWidth="3"
-        android:pathData="M27,54 L36,54 M42,44 L42,64 M54,34 L54,74 M66,44 L66,64 M81,54 L72,54" />
-    <circle android:fillColor="#FFF5E0" android:cx="32" android:cy="32" android:r="4" />
-    <circle android:fillColor="#FFF5E0" android:cx="76" android:cy="76" android:r="5" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,40l-14,20h28z" />
 </vector>
-
