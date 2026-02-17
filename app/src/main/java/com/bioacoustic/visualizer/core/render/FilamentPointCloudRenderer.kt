@@ -3,7 +3,7 @@ package com.bioacoustic.visualizer.core.render
 import android.view.Surface
 import android.view.SurfaceView
 import com.google.android.filament.*
-import com.google.android.filament.VertexBuffer.VertexAttribute // EZ HIÁNYZOTT!
+import com.google.android.filament.VertexBuffer.VertexAttribute
 import com.google.android.filament.android.UiHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -31,10 +31,12 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
                 swapChain = engine.createSwapChain(surface)
                 view.viewport = Viewport(0, 0, surfaceView.width, surfaceView.height)
             }
+            
             override fun onDetachedFromSurface() {
                 swapChain?.let { engine.destroySwapChain(it) }
                 swapChain = null
             }
+            
             override fun onResized(width: Int, height: Int) {
                 view.viewport = Viewport(0, 0, width, height)
                 val aspect = width.toDouble() / height.toDouble()
@@ -77,6 +79,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         
         val ib = IndexBuffer.Builder().indexCount(count).build(engine)
         ib.setBuffer(engine, buffer)
+        this.indexBuffer = ib
         return ib
     }
 
