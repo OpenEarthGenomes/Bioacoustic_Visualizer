@@ -1,53 +1,35 @@
 package com.bioacoustic.visualizer.core.stream
 
 import com.bioacoustic.visualizer.core.audio.AudioAnalyzer
-import com.bioacoustic.visualizer.core.model.SlidingPointBuffer
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-class VisualDataStreamer(
-    private val audioAnalyzer: AudioAnalyzer,
-    private val pointBuffer: SlidingPointBuffer,
-    private val coroutineScope: CoroutineScope
-) {
-    private val _isStreaming = MutableStateFlow(false)
-    val isStreaming: StateFlow<Boolean> = _isStreaming.asStateFlow()
-
-    private var streamingJob: Job? = null
-
-    fun startStreaming() {
-        if (_isStreaming.value) return
-        _isStreaming.value = true
-
-        streamingJob = coroutineScope.launch {
-            // Kombináljuk a spektrális adatokat és az amplitúdót
-            combine(
-                audioAnalyzer.spectralCentroid,
-                audioAnalyzer.fftMagnitudes,
-                audioAnalyzer.audioBuffer
-            ) { centroid, magnitudes, waveform ->
-                if (magnitudes != null && waveform != null) {
-                    // Kiszámoljuk az átlagos amplitúdót (hangerőt)
-                    val amplitude = waveform.map { kotlin.math.abs(it) }.average().toFloat()
-                    
-                    // Keressük a domináns frekvenciát
-                    val maxIndex = magnitudes.indices.maxByOrNull { magnitudes[it] } ?: 0
-                    val dominantFreq = maxIndex * (44100f / (magnitudes.size * 2))
-
-                    // Átadjuk a puffernek, ami kiszámolja a 3D koordinátákat
-                    pointBuffer.addPoint(
-                        frequency = dominantFreq,
-                        amplitude = amplitude,
-                        spectralCentroid = centroid
-                    )
-                }
-            }.collect()
+class VisualDataStreamer(private val audioAnalyzer: AudioAnalyzer) {
+    
+    // Ez a függvény készíti el a 3D pontokat a MainActivity számára
+    fun getVisualData(): Flow<FloatArray> {
+        return audioAnalyzer.audioFlow.map { audioData ->
+            // A hangminta hossza (pl. 1024)
+            val size = audioData.size
+            // Minden hangmintához 3 koordináta kell (X, Y, Z)
+            val points = FloatArray(size * 3) 
+            
+            for (i in 0 until size) {
+                // X: -1.0 és 1.0 között a képernyőn (vízszintes elhelyezkedés)
+                val x = (i.toFloat() / size.toFloat()) * 2.0f - 1.0f
+                
+                // Y: A hangerő alapján (függőleges kitérés)
+                // A Short értéket (max 32768) normalizáljuk
+                val y = audioData[i].toFloat() / 32768.0f
+                
+                // Z: Mélység (egyelőre fix 0, hogy tiszta legyen a hullámformád)
+                val z = 0.0f
+                
+                points[i * 3] = x
+                points[i * 3 + 1] = y
+                points[i * 3 + 2] = z
+            }
+            points
         }
     }
-
-    fun stopStreaming() {
-        streamingJob?.cancel()
-        _isStreaming.value = false
-    }
 }
-
