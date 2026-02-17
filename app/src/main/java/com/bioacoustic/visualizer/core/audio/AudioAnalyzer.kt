@@ -6,19 +6,28 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import org.jtransforms.fft.FloatFFT_1D
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.sqrt
 
 class AudioAnalyzer(
     private val sampleRate: Int = 44100,
-    private val bufferSize: Int = 2048
+    private val bufferSize: Int = 1024
 ) {
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
     private val fft = FloatFFT_1D(bufferSize.toLong())
-    private val audioBuffer = ShortArray(bufferSize)
-    private val fftBuffer = FloatArray(bufferSize * 2)
     
-    var onDataReady: ((FloatArray) -> Unit)? = null
+    // --- EZEK KELLENEK A BUILDHEZ ---
+    private val _audioFlow = MutableStateFlow(ShortArray(bufferSize))
+    val audioFlow: StateFlow<ShortArray> = _audioFlow
+    
+    var audioBuffer = ShortArray(bufferSize)
+    var fftMagnitudes = FloatArray(bufferSize / 2)
+    var spectralCentroid: Float = 0f
+    // --------------------------------
+
+    private val fftBuffer = FloatArray(bufferSize * 2)
 
     @SuppressLint("MissingPermission")
     fun startAnalysis(scope: CoroutineScope) {
@@ -38,11 +47,11 @@ class AudioAnalyzer(
         audioRecord?.startRecording()
 
         scope.launch(Dispatchers.IO) {
-            // Itt a javítás: scope.isActive-et használunk
             while (isRecording && isActive) {
                 val readCount = audioRecord?.read(audioBuffer, 0, bufferSize) ?: 0
                 if (readCount > 0) {
                     processAudio(readCount)
+                    _audioFlow.value = audioBuffer.copyOf()
                 }
             }
         }
@@ -57,13 +66,20 @@ class AudioAnalyzer(
 
         fft.realForward(fftBuffer)
 
-        val magnitudes = FloatArray(bufferSize / 2)
+        var sumWeight = 0f
+        var sumMag = 0f
+
         for (i in 0 until bufferSize / 2) {
             val re = fftBuffer[2 * i]
             val im = fftBuffer[2 * i + 1]
-            magnitudes[i] = sqrt(re * re + im * im)
+            val mag = sqrt(re * re + im * im)
+            fftMagnitudes[i] = mag
+            
+            sumWeight += i * mag
+            sumMag += mag
         }
-        onDataReady?.invoke(magnitudes)
+        
+        spectralCentroid = if (sumMag > 0) sumWeight / sumMag else 0f
     }
 
     fun stop() {
