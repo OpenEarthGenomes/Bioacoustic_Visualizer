@@ -14,7 +14,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Ez a kulcslépés: legenerálja a hiányzó gradlew fájlt a legújabb stabil Gradle-lel
       - name: Generate Gradle Wrapper
         run: gradle wrapper --gradle-version 8.10.2
 
