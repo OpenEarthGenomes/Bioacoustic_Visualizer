@@ -6,7 +6,6 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    // Ez kényszeríti ki, hogy minden forrás innen jöjjön, ne a build fájlokból
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
