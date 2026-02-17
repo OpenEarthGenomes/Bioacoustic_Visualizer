@@ -14,50 +14,37 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : AppCompatActivity() {
-    private val audioAnalyzer = AudioAnalyzer(sampleRate = 44100, bufferSize = 1024)
+    private val audioAnalyzer = AudioAnalyzer(44100, 1024)
     private var renderer: FilamentPointCloudRenderer? = null
     private val streamer = VisualDataStreamer(audioAnalyzer)
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(com.bioacoustic.visualizer.R.layout.activity_main)
+        setContentView(R.layout.activity_main)
         
-        val surfaceView = findViewById<SurfaceView>(com.bioacoustic.visualizer.R.id.surfaceView)
+        val surfaceView = findViewById<SurfaceView>(R.id.surfaceView)
 
-        // ANDROID 16 SAFE CALLBACK
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                // Késleltetett indítás, hogy a One UI 8 grafikai motorja beálljon
                 scope.launch {
-                    delay(500) 
-                    try {
-                        renderer = FilamentPointCloudRenderer(surfaceView)
-                        checkPermissionsAndStart()
-                    } catch (e: Exception) {
-                        // Megakadályozza az azonnali összeomlást
+                    delay(500) // One UI 8 stabilitási várakozás
+                    renderer = FilamentPointCloudRenderer(surfaceView)
+                    if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
+                    } else {
+                        startApp()
                     }
                 }
             }
-            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
-            override fun surfaceDestroyed(holder: SurfaceHolder) {
-                renderer?.release()
-            }
+            override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, height: Int) {}
+            override fun surfaceDestroyed(h: SurfaceHolder) { renderer?.release() }
         })
     }
 
-    private fun checkPermissionsAndStart() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
-        } else {
-            startEverything()
-        }
-    }
-
-    private fun startEverything() {
-        // Csak akkor indul a mikrofon, ha minden más már stabil
+    private fun startApp() {
+        audioAnalyzer.startAnalysis(scope)
         scope.launch {
-            audioAnalyzer.startAnalysis(this)
             streamer.getVisualData().collectLatest { points ->
                 renderer?.updatePoints(points)
                 renderer?.render(System.nanoTime())
@@ -67,8 +54,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        audioAnalyzer.stop()
-        renderer?.release()
         scope.cancel()
+        renderer?.release()
     }
 }
+
