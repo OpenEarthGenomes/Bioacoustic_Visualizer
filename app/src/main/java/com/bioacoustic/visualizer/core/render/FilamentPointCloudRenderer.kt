@@ -1,83 +1,87 @@
 package com.bioacoustic.visualizer.core.render
 
-import android.view.Surface
 import android.view.SurfaceView
 import com.google.android.filament.*
-import com.google.android.filament.VertexBuffer.VertexAttribute
 import com.google.android.filament.android.UiHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class FilamentPointCloudRenderer(private val surfaceView: SurfaceView, private val engine: Engine) {
-    private var renderer = engine.createRenderer()
-    private var scene = engine.createScene()
-    private var camera = engine.createCamera(engine.entityManager.create())
-    private var view = engine.createView()
-    private var swapChain: SwapChain? = null
-    private val uiHelper = UiHelper(UiHelper.ContextErrorPolicy.LOG)
-    private val pointCount = 1024
+class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
+    private var engine: Engine = Engine.create()
+    private var renderer: Renderer = engine.createRenderer()
+    private var scene: Scene = engine.createScene()
+    private var camera: Camera = engine.createCamera(engine.entityManager.create())
+    private var view: View = engine.createView()
+    private val uiHelper = UiHelper(UiHelper.ContextErrorPolicy.REPORT)
+
     private var vertexBuffer: VertexBuffer? = null
-    private val renderableEntity = EntityManager.get().create()
-    private val currentMagnitudes = FloatArray(pointCount)
-    private val lerpFactor = 0.15f
+    private var indexBuffer: IndexBuffer? = null
+    private var renderable: Int = engine.entityManager.create()
 
     init {
         view.scene = scene
         view.camera = camera
-        camera.setProjection(45.0, 1.0, 0.1, 100.0, Camera.Projection.PERSPECTIVE)
-        camera.lookAt(0.0, 2.0, 8.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
-
-        uiHelper.renderCallback = object : UiHelper.RendererCallback {
-            override fun onNativeWindowChanged(surface: Surface) {
-                swapChain?.let { engine.destroySwapChain(it) }
-                swapChain = engine.createSwapChain(surface)
+        camera.setProjection(45.0, surfaceView.width.toDouble() / surfaceView.height.toDouble(), 0.1, 100.0, Camera.Fov.VERTICAL)
+        
+        uiHelper.renderCallback = object : UiHelper.RenderCallback {
+            override fun onNativeWindowChanged(surface: android.view.Surface) {
+                view.viewport = Viewport(0, 0, surfaceView.width, surfaceView.height)
             }
-            override fun onDetachedFromSurface() { swapChain?.let { engine.destroySwapChain(it); swapChain = null } }
             override fun onResized(width: Int, height: Int) {
                 view.viewport = Viewport(0, 0, width, height)
-                camera.setProjection(45.0, width.toDouble() / height.toDouble(), 0.1, 100.0, Camera.Projection.PERSPECTIVE)
+                camera.setProjection(45.0, width.toDouble() / height.toDouble(), 0.1, 100.0, Camera.Fov.VERTICAL)
             }
         }
         uiHelper.attachTo(surfaceView)
-        setupPointCloud()
+        
+        val light = engine.entityManager.create()
+        LightManager.Builder(LightManager.Type.DIRECTIONAL)
+            .color(1.0f, 1.0f, 1.0f)
+            .intensity(100000.0f)
+            .direction(0.0f, -1.0f, -1.0f)
+            .build(engine, light)
+        scene.addEntity(light)
     }
 
-    private fun setupPointCloud() {
+    fun updatePoints(points: FloatArray) {
+        val vertexCount = points.size / 3
+        if (vertexCount == 0) return
+
+        val buffer = ByteBuffer.allocateDirect(points.size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+        buffer.put(points).flip()
+
         vertexBuffer = VertexBuffer.Builder()
-            .bufferCount(1).vertexCount(pointCount)
-            .attribute(VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 24)
-            .attribute(VertexAttribute.COLOR, 0, VertexBuffer.AttributeType.FLOAT3, 12, 24)
+            .bufferCount(1)
+            .vertexCount(vertexCount)
+            .attribute(VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(engine)
+        vertexBuffer?.setBufferAt(engine, 0, buffer)
 
-        RenderableManager.Builder(1)
-            .boundingBox(Box(0.0f, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f))
-            .geometry(0, RenderableManager.PrimitiveType.POINTS, vertexBuffer!!, 0, pointCount)
-            .culling(false).build(engine, renderableEntity)
-        scene.addEntity(renderableEntity)
+        if (!scene.hasEntity(renderable)) {
+            RenderableManager.Builder(1)
+                .boundingBox(Box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f))
+                .geometry(0, RenderableManager.PrimitiveType.POINTS, vertexBuffer!!, indexBuffer ?: createDummyIndexBuffer())
+                .build(engine, renderable)
+            scene.addEntity(renderable)
+        }
     }
 
-    fun updateVisuals(newMagnitudes: FloatArray) {
-        val buffer = ByteBuffer.allocateDirect(pointCount * 6 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-        for (i in 0 until pointCount) {
-            val targetMag = if (i < newMagnitudes.size) newMagnitudes[i] else 0f
-            currentMagnitudes[i] += (targetMag - currentMagnitudes[i]) * lerpFactor
-            val mag = currentMagnitudes[i]
-            val angle = (i.toFloat() / pointCount) * 2.0 * Math.PI
-            val radius = 1.5f + mag * 4.0f
-            
-            buffer.put((radius * Math.cos(angle)).toFloat()).put((i.toFloat() / pointCount) * 6.0f - 3.0f).put((radius * Math.sin(angle)).toFloat())
-            buffer.put((1.0f - (i.toFloat() / pointCount)) * (0.5f + mag)).put(mag * 0.8f).put((i.toFloat() / pointCount) * (0.5f + mag))
-        }
-        buffer.flip()
-        vertexBuffer?.setBufferAt(engine, 0, buffer)
+    private fun createDummyIndexBuffer(): IndexBuffer {
+        val ib = IndexBuffer.Builder().indexCount(0).build(engine)
+        this.indexBuffer = ib
+        return ib
     }
 
     fun render(frameTimeNanos: Long) {
-        if (!uiHelper.isReadyToRender) return
-        val currentSwapChain = swapChain
-        if (currentSwapChain != null && renderer.beginFrame(currentSwapChain, frameTimeNanos)) {
+        if (renderer.beginFrame(surfaceView.holder.surface, frameTimeNanos)) {
             renderer.render(view)
             renderer.endFrame()
         }
+    }
+
+    fun release() {
+        uiHelper.detach()
+        engine.destroyEntity(renderable)
+        engine.destroy()
     }
 }
