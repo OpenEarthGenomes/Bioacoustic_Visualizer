@@ -2,7 +2,19 @@ package com.bioacoustic.visualizer.core.render
 
 import android.view.Surface
 import android.view.SurfaceView
-import com.google.android.filament.*
+// Explicit importok a star import helyett
+import com.google.android.filament.Engine
+import com.google.android.filament.Renderer
+import com.google.android.filament.Scene
+import com.google.android.filament.Camera
+import com.google.android.filament.View
+import com.google.android.filament.SwapChain
+import com.google.android.filament.Viewport
+import com.google.android.filament.VertexBuffer
+import com.google.android.filament.IndexBuffer
+import com.google.android.filament.RenderableManager
+import com.google.android.filament.EntityManager
+import com.google.android.filament.Box
 import com.google.android.filament.android.UiHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -64,10 +76,10 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // Itt az IndexType.USHORT most már működni fog az SDK 34-el!
+        // JAVÍTÁS: Teljesen minősített név használata a kolléga javaslata alapján
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
-            .bufferType(IndexBuffer.IndexType.USHORT)
+            .bufferType(com.google.android.filament.IndexBuffer.IndexType.USHORT)
             .build(e)
 
         renderable = EntityManager.get().create()
