@@ -17,19 +17,22 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private var swapChain: SwapChain? = null
     private val uiHelper = UiHelper().apply {
         renderCallback = object : UiHelper.RendererCallback {
-            // JAVÍTVA: Az új Filament verzióban ez a pontos név és paraméter
-            override fun onNativeWindowChanged(surface: Any) {
+            
+            // JAVÍTVA: A paraméter típusa 'Surface' kell legyen 'Any' helyett!
+            override fun onNativeWindowChanged(surface: Surface) {
                 swapChain?.let { engine.destroySwapChain(it) }
                 swapChain = engine.createSwapChain(surface)
             }
+
             override fun onDetachedFromSurface() {
                 swapChain?.let { engine.destroySwapChain(it) }
                 swapChain = null
             }
+
             override fun onResized(w: Int, h: Int) {
                 view.viewport = Viewport(0, 0, w, h)
-                // JAVÍTVA: A Projection helyett Fov paraméter kell
-                camera.setProjection(45.0, w.toDouble()/h.toDouble(), 0.1, 100.0, Camera.Fov.VERTICAL)
+                val aspect = w.toDouble() / h.toDouble()
+                camera.setProjection(45.0, aspect, 0.1, 100.0, Camera.Fov.VERTICAL)
             }
         }
     }
@@ -37,7 +40,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     init { uiHelper.attachTo(surfaceView) }
 
     fun updatePoints(points: FloatArray) {
-        // Itt jön majd a pontfelhő frissítése
+        // Később ide jön a pontfelhő logika
     }
 
     fun render(frameTimeNanos: Long) {
