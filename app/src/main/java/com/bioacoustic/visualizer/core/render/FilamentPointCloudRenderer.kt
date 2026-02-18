@@ -4,6 +4,9 @@ import android.view.Surface
 import android.view.SurfaceView
 import com.google.android.filament.*
 import com.google.android.filament.android.UiHelper
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.FloatBuffer
 
 class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private var engine: Engine? = null
@@ -13,6 +16,11 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private var view: View? = null
     private var swapChain: SwapChain? = null
     private val uiHelper = UiHelper()
+
+    // Pontfelhő változók
+    private var vertexBuffer: VertexBuffer? = null
+    private var renderable: Int? = null
+    private val maxPoints = 1024 // Ennyi pontot fogunk megjeleníteni egyszerre
 
     init {
         try {
@@ -24,6 +32,8 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
                 this.scene = this@FilamentPointCloudRenderer.scene
                 this.camera = this@FilamentPointCloudRenderer.camera
             }
+
+            setupPointCloud()
 
             uiHelper.renderCallback = object : UiHelper.RendererCallback {
                 override fun onNativeWindowChanged(surface: Surface) {
@@ -46,15 +56,53 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         }
     }
 
+    private fun setupPointCloud() {
+        val e = engine ?: return
+        
+        // VertexBuffer létrehozása (X, Y, Z koordináták)
+        vertexBuffer = VertexBuffer.Builder()
+            .bufferCount(1)
+            .vertexCount(maxPoints)
+            .attribute(VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
+            .build(e)
+
+        renderable = EntityManager.get().create()
+        RenderableManager.Builder(1)
+            .boundingBox(Box(0.0f, 0.0f, 0.0f, 10.0f, 10.0f, 10.0f))
+            .geometry(0, RenderableManager.PrimitiveType.POINTS, vertexBuffer!!, null)
+            .build(e, renderable!!)
+        
+        scene?.addEntity(renderable!!)
+    }
+
+    fun updatePoints(points: FloatArray) {
+        val e = engine ?: return
+        if (points.isEmpty()) return
+
+        // Átalakítjuk a hangadatokat 3D pontokká
+        val floatBuffer = ByteBuffer.allocateDirect(maxPoints * 3 * 4)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+
+        for (i in 0 until Math.min(points.size, maxPoints)) {
+            val x = (i.toFloat() / maxPoints.toFloat()) * 2.0f - 1.0f // Frekvencia tengely
+            val y = points[i] * 0.01f // Amplitúdó (hangerő)
+            val z = -2.0f // Távolság a kamerától
+            
+            floatBuffer.put(x).put(y).put(z)
+        }
+        floatBuffer.flip()
+        vertexBuffer?.setBufferAt(e, 0, floatBuffer)
+    }
+
     fun render(frameTimeNanos: Long) {
         val currentSwapChain = swapChain
         val currentRenderer = renderer
         val currentView = view
 
         if (uiHelper.isReadyToRender && currentSwapChain != null && currentRenderer != null && currentView != null) {
-            // Itt adjuk meg a háttérszínt minden képkockánál (sötétszürke)
             val options = currentRenderer.clearOptions
-            options.clearColor = floatArrayOf(0.1f, 0.1f, 0.1f, 1.0f)
+            options.clearColor = floatArrayOf(0.05f, 0.05f, 0.1f, 1.0f) // Sötétkék háttér
             options.clear = true
             currentRenderer.clearOptions = options
 
@@ -65,15 +113,14 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         }
     }
 
-    fun updatePoints(points: FloatArray) {
-        // Később ide jön a pontfelhő
-    }
-
     fun release() {
         uiHelper.detach()
+        renderable?.let { engine?.destroyEntity(it) }
+        vertexBuffer?.let { engine?.destroyVertexBuffer(it) }
         swapChain?.let { engine?.destroySwapChain(it) }
         view?.let { engine?.destroyView(it) }
         scene?.let { engine?.destroyScene(it) }
         engine?.destroy()
     }
 }
+
