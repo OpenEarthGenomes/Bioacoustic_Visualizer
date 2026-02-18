@@ -1,9 +1,11 @@
 name: Android CI
+
 on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -13,23 +15,25 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          # A cache segít, hogy ne töltsön le mindent újra minden alkalommal
+          cache: gradle
 
       - name: Generate Gradle Wrapper
-        # Fixáljuk a Gradle verziót, hogy ne ugráljon 9.x-re
+        # Fixáljuk a Gradle verziót a 8.10.2-re, ami stabil a Kotlin 2.0-hoz
         run: gradle wrapper --gradle-version 8.10.2
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        # --no-daemon: megelőzi a memóriában ragadt hibákat
-        # --refresh-dependencies: a "cachelt" hibás Filament fájlok ellen
-        # --stacktrace: hogy lássuk a részleteket, ha mégis gond lenne
+        # --no-daemon: megelőzi a memóriában ragadt hibákat a futtatón
+        # --refresh-dependencies: kényszeríti a tiszta állapotot (nincs régi Filament maradék)
+        # --stacktrace: részletes hibaüzenetek, ha a Samsung-specifikus kód elakadna
         run: ./gradlew assembleDebug --refresh-dependencies --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Bioacoustic-Visualizer-Debug-APK
-          # A "**/..." segít megtalálni az APK-t akkor is, ha a mappa nevében kötőjel vagy alulvonás van
+          name: Bioacoustic-Visualizer-Pure-Kotlin-APK
+          # A "**/..." megtalálja az APK-t bárhol az építési mappában
           path: "**/app-debug.apk"
