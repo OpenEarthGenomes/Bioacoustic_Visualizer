@@ -17,6 +17,18 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
+    
+    // Ez a rész kényszeríti ki a Filament motor betöltését az induláskor
+    companion object {
+        init {
+            try {
+                com.google.android.filament.Filament.init()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     private lateinit var surfaceView: SurfaceView
     private var renderer: FilamentPointCloudRenderer? = null
     private val audioAnalyzer = AudioAnalyzer()
@@ -25,62 +37,39 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Képernyő ébren tartása (fontos a vizualizációnál)
+        // Képernyő ébren tartása
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         surfaceView = SurfaceView(this)
         setContentView(surfaceView)
 
-        // Csak akkor indítjuk a motort, ha megvannak az engedélyek
-        checkPermissions()
-    }
-
-    private fun checkPermissions() {
+        // Engedélyek ellenőrzése
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) 
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
         } else {
-            initAppSafe()
+            startEverything()
         }
     }
 
-    private fun initAppSafe() {
+    private fun startEverything() {
         lifecycleScope.launch(Dispatchers.Main) {
+            delay(1000) // 1 másodperc pihenő a rendszernek
             try {
-                // Adunk egy kis időt a rendszernek az inicializálásra
-                delay(500)
                 renderer = FilamentPointCloudRenderer(surfaceView)
+                audioAnalyzer.start()
                 
-                // Indítjuk a hang elemzést külön szálon
-                launch(Dispatchers.IO) {
-                    audioAnalyzer.fftData.collect { data ->
+                executor.execute {
+                    while (!isFinishing) {
+                        val frameTime = System.nanoTime()
                         runOnUiThread {
-                            renderer?.updatePoints(data)
+                            renderer?.render(frameTime)
                         }
+                        Thread.sleep(16)
                     }
                 }
-
-                audioAnalyzer.start()
-                startRenderLoop()
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Ha hiba van, nem hagyjuk, hogy csendben omoljon össze
-            }
-        }
-    }
-
-    private fun startRenderLoop() {
-        executor.execute {
-            while (!isFinishing) {
-                val frameTime = System.nanoTime()
-                runOnUiThread {
-                    renderer?.render(frameTime)
-                }
-                try {
-                    Thread.sleep(16)
-                } catch (e: InterruptedException) {
-                    break
-                }
             }
         }
     }
@@ -88,7 +77,7 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(rc: Int, p: Array<out String>, rs: IntArray) {
         super.onRequestPermissionsResult(rc, p, rs)
         if (rc == 101 && rs.isNotEmpty() && rs[0] == PackageManager.PERMISSION_GRANTED) {
-            initAppSafe()
+            startEverything()
         }
     }
 
