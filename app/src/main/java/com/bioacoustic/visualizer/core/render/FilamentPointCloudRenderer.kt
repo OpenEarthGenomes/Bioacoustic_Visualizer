@@ -1,7 +1,9 @@
 package com.bioacoustic.visualizer.core.render
 
+import android.view.Surface
 import android.view.SurfaceView
 import com.google.android.filament.*
+import com.google.android.filament.android.UiHelper
 
 class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private var engine: Engine? = null
@@ -10,10 +12,10 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private var camera: Camera? = null
     private var view: View? = null
     private var swapChain: SwapChain? = null
+    private val uiHelper = UiHelper()
 
     init {
         try {
-            // Minimális inicializálás az összeomlás elkerülésére
             engine = Engine.create()
             renderer = engine?.createRenderer()
             scene = engine?.createScene()
@@ -21,26 +23,52 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             view = engine?.createView()?.apply {
                 this.scene = this@FilamentPointCloudRenderer.scene
                 this.camera = this@FilamentPointCloudRenderer.camera
+                // Beállítunk egy sötétszürke hátteret, hogy lássuk: működik!
+                setClearColor(0.1f, 0.1f, 0.1f, 1.0f)
             }
-            // A SwapChain-t az első renderelésnél fogjuk létrehozni, ha a Surface készen áll
+
+            uiHelper.renderCallback = object : UiHelper.RendererCallback {
+                override fun onNativeWindowChanged(surface: Surface) {
+                    swapChain?.let { engine?.destroySwapChain(it) }
+                    swapChain = engine?.createSwapChain(surface)
+                }
+                override fun onDetachedFromSurface() {
+                    swapChain?.let { engine?.destroySwapChain(it) }
+                    swapChain = null
+                }
+                override fun onResized(w: Int, h: Int) {
+                    view?.viewport = Viewport(0, 0, w, h)
+                    val aspect = w.toDouble() / h.toDouble()
+                    camera?.setProjection(45.0, aspect, 0.1, 100.0, Camera.Fov.VERTICAL)
+                }
+            }
+            uiHelper.attachTo(surfaceView)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     fun render(frameTimeNanos: Long) {
-        // Most még üresen hagyjuk a rajzolást, csak a motort teszteljük
+        val currentSwapChain = swapChain
+        if (uiHelper.isReadyToRender && currentSwapChain != null) {
+            renderer?.let { r ->
+                if (r.beginFrame(currentSwapChain, frameTimeNanos)) {
+                    view?.let { v -> r.render(v) }
+                    r.endFrame()
+                }
+            }
+        }
     }
 
     fun updatePoints(points: FloatArray) {
-        // Most még nem csinál semmit
+        // Itt fogjuk később a mikrofon adatait pontokká alakítani
     }
 
     fun release() {
-        try {
-            engine?.destroy()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        uiHelper.detach()
+        swapChain?.let { engine?.destroySwapChain(it) }
+        view?.let { engine?.destroyView(it) }
+        scene?.let { engine?.destroyScene(it) }
+        engine?.destroy()
     }
 }
