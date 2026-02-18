@@ -54,8 +54,6 @@ class MainActivity : AppCompatActivity() {
             try {
                 renderer = FilamentPointCloudRenderer(surfaceView)
                 
-                // EZ AZ A RÉSZ, AMIT BELE KELL TENNÜNK:
-                // Elindítjuk a mikrofon adatainak gyűjtését és átadjuk a pontoknak
                 lifecycleScope.launch(Dispatchers.IO) {
                     audioAnalyzer.fftData.collect { data ->
                         runOnUiThread {
@@ -72,7 +70,7 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             renderer?.render(frameTime)
                         }
-                        Thread.sleep(16)
+                        try { Thread.sleep(16) } catch (e: Exception) {}
                     }
                 }
             } catch (e: Exception) {
@@ -95,3 +93,4 @@ class MainActivity : AppCompatActivity() {
         executor.shutdownNow()
     }
 }
+
