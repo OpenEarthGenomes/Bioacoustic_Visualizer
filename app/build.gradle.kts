@@ -29,6 +29,9 @@ android {
     }
 
     packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
         jniLibs {
             useLegacyPackaging = true
         }
@@ -40,7 +43,6 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     
-    // Frissítve a stabil 1.53.0-ra a Kotlin 2.0 miatt
     implementation("com.google.android.filament:filament-android:1.53.0")
     implementation("com.google.android.filament:gltfio-android:1.53.0")
     implementation("com.google.android.filament:filament-utils-android:1.53.0")
@@ -48,3 +50,4 @@ dependencies {
     implementation("com.github.wendykierp:JTransforms:3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
+
