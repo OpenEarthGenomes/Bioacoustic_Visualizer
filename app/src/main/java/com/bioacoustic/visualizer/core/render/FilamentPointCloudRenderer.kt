@@ -17,6 +17,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private val uiHelper = UiHelper()
 
     private var vertexBuffer: VertexBuffer? = null
+    private var indexBuffer: IndexBuffer? = null
     private var renderable: Int? = null
     private val maxPoints = 1024
 
@@ -57,20 +58,25 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private fun setupPointCloud() {
         val e = engine ?: return
         
-        // VertexBuffer - Itt nem használunk belső referenciát, csak a legszükségesebbet
         vertexBuffer = VertexBuffer.Builder()
             .bufferCount(1)
             .vertexCount(maxPoints)
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
+        // A TRÜKK: Nem használjuk az IndexType nevet, hanem a sorszámát (USHORT = 0 vagy 1 típustól függően)
+        // De hogy biztosra menjünk, lekérjük a típusok listájából az elsőt
+        val type = IndexBuffer.IndexType.values()[0] 
+
+        indexBuffer = IndexBuffer.Builder()
+            .indexCount(maxPoints)
+            .bufferType(type)
+            .build(e)
+
         renderable = EntityManager.get().create()
-        
-        // JAVÍTÁS: Kihagyjuk az IndexBuffert teljesen! 
-        // A Filament tud rajzolni indexek nélkül is, ha csak pontokról van szó.
         RenderableManager.Builder(1)
             .boundingBox(Box(0.0f, 0.0f, 0.0f, 10.0f, 10.0f, 10.0f))
-            .geometry(0, RenderableManager.PrimitiveType.POINTS, vertexBuffer!!, 0, maxPoints)
+            .geometry(0, RenderableManager.PrimitiveType.POINTS, vertexBuffer!!, indexBuffer!!, 0, maxPoints)
             .build(e, renderable!!)
         
         scene?.addEntity(renderable!!)
@@ -117,9 +123,11 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         uiHelper.detach()
         renderable?.let { engine?.destroyEntity(it) }
         vertexBuffer?.let { engine?.destroyVertexBuffer(it) }
+        indexBuffer?.let { engine?.destroyIndexBuffer(it) }
         swapChain?.let { engine?.destroySwapChain(it) }
         view?.let { engine?.destroyView(it) }
         scene?.let { engine?.destroyScene(it) }
         engine?.destroy()
     }
 }
+
