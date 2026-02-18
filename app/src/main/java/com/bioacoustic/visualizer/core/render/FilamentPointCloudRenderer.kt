@@ -23,8 +23,6 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             view = engine?.createView()?.apply {
                 this.scene = this@FilamentPointCloudRenderer.scene
                 this.camera = this@FilamentPointCloudRenderer.camera
-                // Beállítunk egy sötétszürke hátteret, hogy lássuk: működik!
-                setClearColor(0.1f, 0.1f, 0.1f, 1.0f)
             }
 
             uiHelper.renderCallback = object : UiHelper.RendererCallback {
@@ -50,18 +48,25 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
 
     fun render(frameTimeNanos: Long) {
         val currentSwapChain = swapChain
-        if (uiHelper.isReadyToRender && currentSwapChain != null) {
-            renderer?.let { r ->
-                if (r.beginFrame(currentSwapChain, frameTimeNanos)) {
-                    view?.let { v -> r.render(v) }
-                    r.endFrame()
-                }
+        val currentRenderer = renderer
+        val currentView = view
+
+        if (uiHelper.isReadyToRender && currentSwapChain != null && currentRenderer != null && currentView != null) {
+            // Itt adjuk meg a háttérszínt minden képkockánál (sötétszürke)
+            val options = currentRenderer.clearOptions
+            options.clearColor = floatArrayOf(0.1f, 0.1f, 0.1f, 1.0f)
+            options.clear = true
+            currentRenderer.clearOptions = options
+
+            if (currentRenderer.beginFrame(currentSwapChain, frameTimeNanos)) {
+                currentRenderer.render(currentView)
+                currentRenderer.endFrame()
             }
         }
     }
 
     fun updatePoints(points: FloatArray) {
-        // Itt fogjuk később a mikrofon adatait pontokká alakítani
+        // Később ide jön a pontfelhő
     }
 
     fun release() {
