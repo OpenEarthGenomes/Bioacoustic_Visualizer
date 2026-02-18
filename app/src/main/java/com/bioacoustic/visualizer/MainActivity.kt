@@ -53,9 +53,19 @@ class MainActivity : AppCompatActivity() {
             delay(500) 
             try {
                 renderer = FilamentPointCloudRenderer(surfaceView)
+                
+                // EZ AZ A RÉSZ, AMIT BELE KELL TENNÜNK:
+                // Elindítjuk a mikrofon adatainak gyűjtését és átadjuk a pontoknak
+                lifecycleScope.launch(Dispatchers.IO) {
+                    audioAnalyzer.fftData.collect { data ->
+                        runOnUiThread {
+                            renderer?.updatePoints(data)
+                        }
+                    }
+                }
+
                 audioAnalyzer.start()
                 
-                // Elindítjuk a renderelési ciklust
                 executor.execute {
                     while (!isFinishing) {
                         val frameTime = System.nanoTime()
@@ -85,4 +95,3 @@ class MainActivity : AppCompatActivity() {
         executor.shutdownNow()
     }
 }
-
