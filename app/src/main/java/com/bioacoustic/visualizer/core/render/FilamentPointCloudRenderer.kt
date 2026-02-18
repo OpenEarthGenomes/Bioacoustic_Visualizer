@@ -64,13 +64,10 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // A TRÜKK: Nem használjuk az IndexType nevet, hanem a sorszámát (USHORT = 0 vagy 1 típustól függően)
-        // De hogy biztosra menjünk, lekérjük a típusok listájából az elsőt
-        val type = IndexBuffer.IndexType.values()[0] 
-
+        // Itt az IndexType.USHORT most már működni fog az SDK 34-el!
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
-            .bufferType(type)
+            .bufferType(IndexBuffer.IndexType.USHORT)
             .build(e)
 
         renderable = EntityManager.get().create()
@@ -130,4 +127,3 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         engine?.destroy()
     }
 }
-
