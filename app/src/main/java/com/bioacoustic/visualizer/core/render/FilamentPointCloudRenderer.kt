@@ -60,9 +60,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // RADIKÁLIS JAVÍTÁS: 
-        // Ha a fordító nem ismeri fel az IndexType-ot, kikerüljük a Builder-t ennél a résznél, 
-        // vagy kényszerítjük a pontos elérési utat.
+        // Teljes elérési út használata a típusnál a fordítási hiba ellen
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
             .bufferType(com.google.android.filament.IndexBuffer.IndexType.USHORT)
@@ -84,7 +82,6 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         val floatBuffer = ByteBuffer.allocateDirect(maxPoints * 3 * 4)
             .order(ByteOrder.nativeOrder()).asFloatBuffer()
             
-        // Adatok feltöltése: X, Y, Z koordináták
         for (i in 0 until Math.min(points.size / 3, maxPoints)) {
             floatBuffer.put(points[i * 3])
             floatBuffer.put(points[i * 3 + 1])
@@ -100,7 +97,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         val v = view ?: return
         if (uiHelper.isReadyToRender) {
             r.clearOptions = r.clearOptions.apply {
-                clearColor = floatArrayOf(0.05f, 0.05f, 0.1f, 1.0f) // Sötétkék háttér a szürke helyett
+                clearColor = floatArrayOf(0.05f, 0.05f, 0.1f, 1.0f)
                 clear = true
             }
             if (r.beginFrame(sc, frameTimeNanos)) {
@@ -121,4 +118,3 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         engine?.destroy()
     }
 }
-
