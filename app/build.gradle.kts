@@ -9,17 +9,24 @@ android {
 
     defaultConfig {
         applicationId = "com.bioacoustic.visualizer"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
-        versionName = "2.0-PURE-KOTLIN"
+        versionName = "1.0-PureKotlin"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -28,7 +35,11 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.github.wendykierp:JTransforms:3.1")
+    implementation("com.google.android.material:material:1.11.0")
+    
+    // Ez kell a lifecycleScope-hoz (a hiba forrása volt)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    
+    // Coroutines a háttér folyamatokhoz
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    // MINDEN C++ ALAPÚ MOTOR TÖRÖLVE
 }
