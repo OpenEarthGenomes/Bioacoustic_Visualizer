@@ -19,13 +19,6 @@ android {
         }
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -36,9 +29,6 @@ android {
     }
 
     packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
         jniLibs {
             useLegacyPackaging = true
         }
@@ -50,7 +40,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     
-    // Frissítve 1.53.0-ra a jobb Kotlin 2.0 kompatibilitás miatt
+    // Frissítve a stabil 1.53.0-ra a Kotlin 2.0 miatt
     implementation("com.google.android.filament:filament-android:1.53.0")
     implementation("com.google.android.filament:gltfio-android:1.53.0")
     implementation("com.google.android.filament:filament-utils-android:1.53.0")
