@@ -60,14 +60,12 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // DRASZTIKUS JAVÍTÁS: Nem hivatkozunk az IndexType-ra névvel.
-        // Lekérjük az összes típust tömbbe, és az elsőt (USHORT) használjuk.
-        // Ez megkerüli az "Unresolved reference" hibát.
-        val indexTypes = IndexBuffer.IndexType.values()
-        
+        // RADIKÁLIS JAVÍTÁS: 
+        // Ha a fordító nem ismeri fel az IndexType-ot, kikerüljük a Builder-t ennél a résznél, 
+        // vagy kényszerítjük a pontos elérési utat.
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
-            .bufferType(indexTypes[0]) // Az USHORT az első elem
+            .bufferType(com.google.android.filament.IndexBuffer.IndexType.USHORT)
             .build(e)
 
         renderable = EntityManager.get().create()
@@ -82,10 +80,15 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     fun updatePoints(points: FloatArray) {
         val e = engine ?: return
         if (points.isEmpty()) return
+        
         val floatBuffer = ByteBuffer.allocateDirect(maxPoints * 3 * 4)
             .order(ByteOrder.nativeOrder()).asFloatBuffer()
-        for (i in 0 until Math.min(points.size, maxPoints)) {
-            floatBuffer.put((i.toFloat() / maxPoints.toFloat()) * 2.0f - 1.0f).put(points[i] * 0.005f).put(-4.0f)
+            
+        // Adatok feltöltése: X, Y, Z koordináták
+        for (i in 0 until Math.min(points.size / 3, maxPoints)) {
+            floatBuffer.put(points[i * 3])
+            floatBuffer.put(points[i * 3 + 1])
+            floatBuffer.put(points[i * 3 + 2])
         }
         floatBuffer.flip()
         vertexBuffer?.setBufferAt(e, 0, floatBuffer)
@@ -97,7 +100,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         val v = view ?: return
         if (uiHelper.isReadyToRender) {
             r.clearOptions = r.clearOptions.apply {
-                clearColor = floatArrayOf(0.05f, 0.05f, 0.1f, 1.0f)
+                clearColor = floatArrayOf(0.05f, 0.05f, 0.1f, 1.0f) // Sötétkék háttér a szürke helyett
                 clear = true
             }
             if (r.beginFrame(sc, frameTimeNanos)) {
@@ -118,3 +121,4 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         engine?.destroy()
     }
 }
+
