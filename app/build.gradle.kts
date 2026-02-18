@@ -12,11 +12,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
-        
-        ndk {
-            abiFilters.add("arm64-v8a")
-        }
+        versionName = "2.0-PURE-KOTLIN"
     }
 
     compileOptions {
@@ -27,27 +23,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
-    
-    implementation("com.google.android.filament:filament-android:1.53.0")
-    implementation("com.google.android.filament:gltfio-android:1.53.0")
-    implementation("com.google.android.filament:filament-utils-android:1.53.0")
-    
     implementation("com.github.wendykierp:JTransforms:3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    // MINDEN C++ ALAPÚ MOTOR TÖRÖLVE
 }
-
