@@ -40,3 +40,4 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     }
     fun release() { uiHelper.detach(); engine.destroy() }
 }
+
