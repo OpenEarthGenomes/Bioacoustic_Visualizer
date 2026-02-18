@@ -15,17 +15,21 @@ jobs:
           distribution: 'temurin'
 
       - name: Generate Gradle Wrapper
+        # Fixáljuk a Gradle verziót, hogy ne ugráljon 9.x-re
         run: gradle wrapper --gradle-version 8.10.2
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        # A --refresh-dependencies kisöpri a hibás cache-t, a --stacktrace pedig mindent megmutat
-        run: ./gradlew assembleDebug --refresh-dependencies --stacktrace
+        # --no-daemon: megelőzi a memóriában ragadt hibákat
+        # --refresh-dependencies: a "cachelt" hibás Filament fájlok ellen
+        # --stacktrace: hogy lássuk a részleteket, ha mégis gond lenne
+        run: ./gradlew assembleDebug --refresh-dependencies --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Bioacoustic-Visualizer-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          # A "**/..." segít megtalálni az APK-t akkor is, ha a mappa nevében kötőjel vagy alulvonás van
+          path: "**/app-debug.apk"
