@@ -1,4 +1,4 @@
-# Bioacoustic_Visualizer
+**# Bioacoustic_Visualizer
 
 Bioacoustic_Visualizer/
 ├── .github/
@@ -34,4 +34,4 @@ Bioacoustic_Visualizer/
 ├── build.gradle.kts              (Projekt szintű beállítások)
 ├── gradlew
 ├── settings.gradle.kts
-└── README.md                     (Ebbe a fájlba teheted ezt a rajzot!)
+└── README.md                     (Ebbe a fájlba teheted ezt a rajzot!)**
