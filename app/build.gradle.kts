@@ -5,12 +5,13 @@ plugins {
 
 android {
     namespace = "com.bioacoustic.visualizer"
-    compileSdk = 35
+    // Visszaállítva 34-re a stabilitás és a Samsung A35 miatt
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.bioacoustic.visualizer"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
     }
@@ -26,7 +27,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // DeepSeek javaslata alapján a legújabb formátumra javítva:
     kotlin {
         jvmToolchain(17)
     }
@@ -37,7 +37,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     
-    // Filament 1.51.0 - Ez kell a build sikeréhez
+    // Stabil Filament verziók
     implementation("com.google.android.filament:filament-android:1.51.0")
     implementation("com.google.android.filament:gltfio-android:1.51.0")
     implementation("com.google.android.filament:filament-utils-android:1.51.0")
