@@ -2,19 +2,7 @@ package com.bioacoustic.visualizer.core.render
 
 import android.view.Surface
 import android.view.SurfaceView
-// Explicit importok a star import helyett
-import com.google.android.filament.Engine
-import com.google.android.filament.Renderer
-import com.google.android.filament.Scene
-import com.google.android.filament.Camera
-import com.google.android.filament.View
-import com.google.android.filament.SwapChain
-import com.google.android.filament.Viewport
-import com.google.android.filament.VertexBuffer
-import com.google.android.filament.IndexBuffer
-import com.google.android.filament.RenderableManager
-import com.google.android.filament.EntityManager
-import com.google.android.filament.Box
+import com.google.android.filament.*
 import com.google.android.filament.android.UiHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -43,9 +31,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
                 this.scene = this@FilamentPointCloudRenderer.scene
                 this.camera = this@FilamentPointCloudRenderer.camera
             }
-
             setupPointCloud()
-
             uiHelper.renderCallback = object : UiHelper.RendererCallback {
                 override fun onNativeWindowChanged(surface: Surface) {
                     swapChain?.let { engine?.destroySwapChain(it) }
@@ -62,9 +48,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
                 }
             }
             uiHelper.attachTo(surfaceView)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun setupPointCloud() {
@@ -76,10 +60,14 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // JAVÍTÁS: Teljesen minősített név használata a kolléga javaslata alapján
+        // DRASZTIKUS JAVÍTÁS: Nem hivatkozunk az IndexType-ra névvel.
+        // Lekérjük az összes típust tömbbe, és az elsőt (USHORT) használjuk.
+        // Ez megkerüli az "Unresolved reference" hibát.
+        val indexTypes = IndexBuffer.IndexType.values()
+        
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
-            .bufferType(com.google.android.filament.IndexBuffer.IndexType.USHORT)
+            .bufferType(indexTypes[0]) // Az USHORT az első elem
             .build(e)
 
         renderable = EntityManager.get().create()
@@ -94,36 +82,27 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     fun updatePoints(points: FloatArray) {
         val e = engine ?: return
         if (points.isEmpty()) return
-
         val floatBuffer = ByteBuffer.allocateDirect(maxPoints * 3 * 4)
-            .order(ByteOrder.nativeOrder())
-            .asFloatBuffer()
-
+            .order(ByteOrder.nativeOrder()).asFloatBuffer()
         for (i in 0 until Math.min(points.size, maxPoints)) {
-            val x = (i.toFloat() / maxPoints.toFloat()) * 2.0f - 1.0f 
-            val y = points[i] * 0.005f 
-            val z = -4.0f 
-            
-            floatBuffer.put(x).put(y).put(z)
+            floatBuffer.put((i.toFloat() / maxPoints.toFloat()) * 2.0f - 1.0f).put(points[i] * 0.005f).put(-4.0f)
         }
         floatBuffer.flip()
         vertexBuffer?.setBufferAt(e, 0, floatBuffer)
     }
 
     fun render(frameTimeNanos: Long) {
-        val currentSwapChain = swapChain
-        val currentRenderer = renderer
-        val currentView = view
-
-        if (uiHelper.isReadyToRender && currentSwapChain != null && currentRenderer != null && currentView != null) {
-            val options = currentRenderer.clearOptions
-            options.clearColor = floatArrayOf(0.05f, 0.05f, 0.1f, 1.0f)
-            options.clear = true
-            currentRenderer.clearOptions = options
-
-            if (currentRenderer.beginFrame(currentSwapChain, frameTimeNanos)) {
-                currentRenderer.render(currentView)
-                currentRenderer.endFrame()
+        val sc = swapChain ?: return
+        val r = renderer ?: return
+        val v = view ?: return
+        if (uiHelper.isReadyToRender) {
+            r.clearOptions = r.clearOptions.apply {
+                clearColor = floatArrayOf(0.05f, 0.05f, 0.1f, 1.0f)
+                clear = true
+            }
+            if (r.beginFrame(sc, frameTimeNanos)) {
+                r.render(v)
+                r.endFrame()
             }
         }
     }
