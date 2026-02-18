@@ -3,8 +3,6 @@ package com.bioacoustic.visualizer.core.render
 import android.view.Surface
 import android.view.SurfaceView
 import com.google.android.filament.*
-import com.google.android.filament.VertexBuffer.VertexAttribute
-import com.google.android.filament.IndexBuffer.IndexType
 import com.google.android.filament.android.UiHelper
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -61,17 +59,17 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private fun setupPointCloud() {
         val e = engine ?: return
         
-        // VertexBuffer beállítása explicit módon
+        // TELJES ELÉRÉSI ÚT - semmi rövidítés
         vertexBuffer = VertexBuffer.Builder()
             .bufferCount(1)
             .vertexCount(maxPoints)
-            .attribute(VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
+            .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // IndexBuffer beállítása explicit IndexType hivatkozással
+        // TELJES ELÉRÉSI ÚT az IndexType-hoz is
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
-            .bufferType(IndexType.USHORT)
+            .bufferType(IndexBuffer.IndexType.USHORT)
             .build(e)
 
         renderable = EntityManager.get().create()
@@ -131,4 +129,3 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         engine?.destroy()
     }
 }
-
