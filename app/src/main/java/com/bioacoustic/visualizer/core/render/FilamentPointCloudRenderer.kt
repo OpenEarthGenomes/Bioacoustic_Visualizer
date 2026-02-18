@@ -18,6 +18,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private val uiHelper = UiHelper()
 
     private var vertexBuffer: VertexBuffer? = null
+    private var indexBuffer: IndexBuffer? = null
     private var renderable: Int? = null
     private val maxPoints = 1024
 
@@ -58,18 +59,23 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private fun setupPointCloud() {
         val e = engine ?: return
         
+        // VertexBuffer létrehozása direkt hivatkozással a VertexAttribute-ra
         vertexBuffer = VertexBuffer.Builder()
             .bufferCount(1)
             .vertexCount(maxPoints)
-            // Itt a VertexAttribute.POSITION javítva lett (az import miatt működni fog)
-            .attribute(VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
+            .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
+            .build(e)
+
+        // Csinálunk egy üres IndexBuffert, mert a Kotlin nem engedi a null-t
+        indexBuffer = IndexBuffer.Builder()
+            .indexCount(maxPoints)
+            .bufferType(IndexBuffer.IndexType.USHORT)
             .build(e)
 
         renderable = EntityManager.get().create()
         RenderableManager.Builder(1)
             .boundingBox(Box(0.0f, 0.0f, 0.0f, 10.0f, 10.0f, 10.0f))
-            // Itt a NULL hiba javítva: nem adunk meg indexet, csak a geometriát
-            .geometry(0, RenderableManager.PrimitiveType.POINTS, vertexBuffer!!, null as IndexBuffer?)
+            .geometry(0, RenderableManager.PrimitiveType.POINTS, vertexBuffer!!, indexBuffer!!)
             .build(e, renderable!!)
         
         scene?.addEntity(renderable!!)
@@ -86,7 +92,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         for (i in 0 until Math.min(points.size, maxPoints)) {
             val x = (i.toFloat() / maxPoints.toFloat()) * 2.0f - 1.0f 
             val y = points[i] * 0.01f 
-            val z = -2.0f 
+            val z = -4.0f // Kicsit hátrébb toltuk, hogy jobban látsszon
             
             floatBuffer.put(x).put(y).put(z)
         }
@@ -116,6 +122,7 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
         uiHelper.detach()
         renderable?.let { engine?.destroyEntity(it) }
         vertexBuffer?.let { engine?.destroyVertexBuffer(it) }
+        indexBuffer?.let { engine?.destroyIndexBuffer(it) }
         swapChain?.let { engine?.destroySwapChain(it) }
         view?.let { engine?.destroyView(it) }
         scene?.let { engine?.destroyScene(it) }
