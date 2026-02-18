@@ -5,7 +5,6 @@ plugins {
 
 android {
     namespace = "com.bioacoustic.visualizer"
-    // Visszaállítva 34-re a stabilitás és a Samsung A35 miatt
     compileSdk = 34
 
     defaultConfig {
@@ -14,11 +13,16 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
@@ -27,8 +31,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin {
-        jvmToolchain(17)
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -37,10 +50,10 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     
-    // Stabil Filament verziók
-    implementation("com.google.android.filament:filament-android:1.51.0")
-    implementation("com.google.android.filament:gltfio-android:1.51.0")
-    implementation("com.google.android.filament:filament-utils-android:1.51.0")
+    // Frissítve 1.53.0-ra a jobb Kotlin 2.0 kompatibilitás miatt
+    implementation("com.google.android.filament:filament-android:1.53.0")
+    implementation("com.google.android.filament:gltfio-android:1.53.0")
+    implementation("com.google.android.filament:filament-utils-android:1.53.0")
     
     implementation("com.github.wendykierp:JTransforms:3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
