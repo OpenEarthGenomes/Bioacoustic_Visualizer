@@ -60,10 +60,14 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // Teljes elérési út használata a típusnál a fordítási hiba ellen
+        // Itt a trükk: Nem hivatkozunk névvel az IndexType-ra, 
+        // mert a Kotlin 2.0 fordítója ott elbukik.
+        // Az IndexBuffer.IndexType.USHORT az első elem az enumban (0).
+        val types = IndexBuffer.IndexType.entries
+        
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
-            .bufferType(com.google.android.filament.IndexBuffer.IndexType.USHORT)
+            .bufferType(types[0]) 
             .build(e)
 
         renderable = EntityManager.get().create()
