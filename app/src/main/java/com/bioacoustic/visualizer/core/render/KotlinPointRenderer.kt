@@ -9,64 +9,69 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 class KotlinPointRenderer : GLSurfaceView.Renderer {
+
     private var vertexBuffer: FloatBuffer? = null
-    private var shaderProgram: Int = 0
+    private var program: Int = 0
     private var pointCount: Int = 0
 
-    // Shader kódok - közvetlenül a grafikus chipnek (GPU) szólnak
     private val vertexShaderCode = """
         attribute vec4 vPosition;
         void main() {
             gl_Position = vPosition;
-            gl_PointSize = 12.0; // Jó nagy pontok, hogy lásd őket
+            gl_PointSize = 8.0;
         }
     """.trimIndent()
 
     private val fragmentShaderCode = """
         precision mediump float;
         void main() {
-            gl_FragColor = vec4(0.0, 1.0, 0.8, 1.0); // Szép türkizkék pontok
+            gl_FragColor = vec4(0.0, 1.0, 0.8, 1.0);
         }
     """.trimIndent()
 
-    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0.05f, 0.05f, 0.15f, 1.0f) // Sötét háttér
+    override fun onSurfaceCreated(unused: GL10?, config: EGLConfig?) {
+        GLES20.glClearColor(0.01f, 0.05f, 0.1f, 1.0f)
         
         val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
         val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
-        
-        shaderProgram = GLES20.glCreateProgram().also {
+
+        program = GLES20.glCreateProgram().also {
             GLES20.glAttachShader(it, vertexShader)
             GLES20.glAttachShader(it, fragmentShader)
             GLES20.glLinkProgram(it)
         }
     }
 
-    fun updatePoints(points: FloatArray) {
-        pointCount = points.size / 3
-        val byteBuffer = ByteBuffer.allocateDirect(points.size * 4)
-        byteBuffer.order(ByteOrder.nativeOrder())
-        vertexBuffer = byteBuffer.asFloatBuffer().apply {
-            put(points)
+    fun updatePoints(fftData: FloatArray) {
+        pointCount = fftData.size
+        val vertices = FloatArray(pointCount * 3)
+        for (i in fftData.indices) {
+            vertices[i * 3] = (i.toFloat() / pointCount.toFloat()) * 2f - 1f // X tengely
+            vertices[i * 3 + 1] = fftData[i] * 2f - 1f // Y tengely (hang magassága)
+            vertices[i * 3 + 2] = 0f // Z tengely
+        }
+
+        val bb = ByteBuffer.allocateDirect(vertices.size * 4)
+        bb.order(ByteOrder.nativeOrder())
+        vertexBuffer = bb.asFloatBuffer().apply {
+            put(vertices)
             position(0)
         }
     }
 
-    override fun onDrawFrame(gl: GL10?) {
+    override fun onDrawFrame(unused: GL10?) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        val vBuffer = vertexBuffer ?: return
+        if (vertexBuffer == null) return
 
-        GLES20.glUseProgram(shaderProgram)
-        val positionHandle = GLES20.glGetAttribLocation(shaderProgram, "vPosition")
-        
+        GLES20.glUseProgram(program)
+        val positionHandle = GLES20.glGetAttribLocation(program, "vPosition")
         GLES20.glEnableVertexAttribArray(positionHandle)
-        GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 12, vBuffer)
-        
+        GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 12, vertexBuffer)
         GLES20.glDrawArrays(GLES20.GL_POINTS, 0, pointCount)
         GLES20.glDisableVertexAttribArray(positionHandle)
     }
 
-    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+    override fun onSurfaceChanged(unused: GL10?, width: Int, height: Int) {
         GLES20.glViewport(0, 0, width, height)
     }
 
@@ -77,4 +82,3 @@ class KotlinPointRenderer : GLSurfaceView.Renderer {
         }
     }
 }
-
