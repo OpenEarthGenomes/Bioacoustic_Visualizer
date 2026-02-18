@@ -59,14 +59,14 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
     private fun setupPointCloud() {
         val e = engine ?: return
         
-        // VertexBuffer létrehozása direkt hivatkozással a VertexAttribute-ra
+        // VertexBuffer - Teljes elérési úttal
         vertexBuffer = VertexBuffer.Builder()
             .bufferCount(1)
             .vertexCount(maxPoints)
             .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
             .build(e)
 
-        // Csinálunk egy üres IndexBuffert, mert a Kotlin nem engedi a null-t
+        // IndexBuffer - JAVÍTVA: IndexBuffer.IndexType használatával
         indexBuffer = IndexBuffer.Builder()
             .indexCount(maxPoints)
             .bufferType(IndexBuffer.IndexType.USHORT)
@@ -89,10 +89,11 @@ class FilamentPointCloudRenderer(private val surfaceView: SurfaceView) {
             .order(ByteOrder.nativeOrder())
             .asFloatBuffer()
 
+        // Adatok feltöltése: frekvencia (X), amplitúdó (Y), mélység (Z)
         for (i in 0 until Math.min(points.size, maxPoints)) {
             val x = (i.toFloat() / maxPoints.toFloat()) * 2.0f - 1.0f 
-            val y = points[i] * 0.01f 
-            val z = -4.0f // Kicsit hátrébb toltuk, hogy jobban látsszon
+            val y = (points[i] * 0.005f) // Kicsit finomított érzékenység
+            val z = -4.0f 
             
             floatBuffer.put(x).put(y).put(z)
         }
