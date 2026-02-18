@@ -18,7 +18,6 @@ import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
     
-    // Ez a rész kényszeríti ki a Filament motor betöltését az induláskor
     companion object {
         init {
             try {
@@ -36,14 +35,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Képernyő ébren tartása
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         surfaceView = SurfaceView(this)
         setContentView(surfaceView)
 
-        // Engedélyek ellenőrzése
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) 
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
@@ -54,11 +50,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun startEverything() {
         lifecycleScope.launch(Dispatchers.Main) {
-            delay(1000) // 1 másodperc pihenő a rendszernek
+            delay(500) 
             try {
                 renderer = FilamentPointCloudRenderer(surfaceView)
                 audioAnalyzer.start()
                 
+                // Elindítjuk a renderelési ciklust
                 executor.execute {
                     while (!isFinishing) {
                         val frameTime = System.nanoTime()
@@ -88,3 +85,4 @@ class MainActivity : AppCompatActivity() {
         executor.shutdownNow()
     }
 }
+
