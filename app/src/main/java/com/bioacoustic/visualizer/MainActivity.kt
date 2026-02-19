@@ -27,18 +27,16 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         glSurfaceView = findViewById(R.id.glSurfaceView)
-        glSurfaceView.apply {
-            setEGLContextClientVersion(2)
-            setRenderer(this@MainActivity.renderer)
-            renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
-        }
+        glSurfaceView.setEGLContextClientVersion(2)
+        glSurfaceView.setRenderer(renderer)
 
         val label = findViewById<TextView>(R.id.sensitivityLabel)
         findViewById<SeekBar>(R.id.sensitivitySeekBar).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                val factor = progress / 100f
-                renderer.sensitivity = factor
-                label.text = "BIO-GAIN: ${String.format("%.1f", factor)}x"
+                // 0.5-től 20.0-ig terjedő skála a hatalmas boost érdekében
+                val boost = (progress / 50f) + 0.5f
+                renderer.sensitivity = boost
+                label.text = "BIO-BOOST: ${String.format("%.1f", boost)}x"
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
