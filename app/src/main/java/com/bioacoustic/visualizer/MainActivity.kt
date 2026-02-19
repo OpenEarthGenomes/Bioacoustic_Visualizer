@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -39,14 +38,13 @@ class MainActivity : AppCompatActivity() {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 val factor = progress / 100f
                 renderer.sensitivity = factor
-                label.text = "Érzékenység: ${String.format("%.1f", factor)}x"
+                label.text = "BIO-GAIN: ${String.format("%.1f", factor)}x"
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) 
-            != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
         } else {
             startAudioCapture()
@@ -62,16 +60,8 @@ class MainActivity : AppCompatActivity() {
         audioAnalyzer.start()
     }
 
-    override fun onRequestPermissionsResult(rc: Int, p: Array<out String>, rs: IntArray) {
-        super.onRequestPermissionsResult(rc, p, rs)
-        if (rc == 101 && rs.isNotEmpty() && rs[0] == PackageManager.PERMISSION_GRANTED) {
-            startAudioCapture()
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         audioAnalyzer.stop()
     }
 }
-
