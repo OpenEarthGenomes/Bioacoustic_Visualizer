@@ -1,47 +1,67 @@
 package com.bioacoustic.visualizer
 
-import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
 import android.opengl.GLSurfaceView
+import android.os.Bundle
 import android.widget.SeekBar
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.bioacoustic.visualizer.core.render.KotlinPointRenderer
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.bioacoustic.visualizer.core.audio.AudioAnalyzer
+import com.bioacoustic.visualizer.core.render.KotlinPointRenderer
 
 class MainActivity : AppCompatActivity() {
     private var visualizerView: GLSurfaceView? = null
     private val renderer = KotlinPointRenderer()
-    private lateinit var audioAnalyzer: AudioAnalyzer
+    private var audioAnalyzer: AudioAnalyzer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // 1. Mikrofon engedély ellenőrzése
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) 
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1001)
+        } else {
+            initApp()
+        }
+    }
+
+    private fun initApp() {
         visualizerView = findViewById(R.id.visualizerView)
-        
-        // OpenGL ES 3.0 beállítása a vízeséshez
         visualizerView?.setEGLContextClientVersion(3)
         visualizerView?.setRenderer(renderer)
         
         audioAnalyzer = AudioAnalyzer(renderer)
-
-        val seekBar = findViewById<SeekBar>(R.id.sensitivitySeekBar)
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        
+        findViewById<SeekBar>(R.id.sensitivitySeekBar)?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, p2: Boolean) {
-                // Érzékenység állítása a rendererben
-                renderer.sensitivity = progress / 100f
+                renderer.sensitivity = progress / 50f
             }
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
     }
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            initApp()
+        } else {
+            Toast.makeText(this, "Mikrofon engedély szükséges!", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        audioAnalyzer.start()
+        audioAnalyzer?.start()
     }
 
     override fun onPause() {
         super.onPause()
-        audioAnalyzer.stop()
+        audioAnalyzer?.stop()
     }
 }
