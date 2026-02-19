@@ -1,6 +1,6 @@
 package com.bioacoustic.visualizer.core.render
 
-import android.opengl.GLES20
+import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -9,75 +9,59 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 class KotlinPointRenderer : GLSurfaceView.Renderer {
-    private var vertexBuffer: FloatBuffer? = null
-    private var program: Int = 0
-    private val maxHistory = 50 // Ennyi időpillanatot látunk egyszerre
-    private val pointsPerFrame = 256
-    private var historyData = FloatArray(maxHistory * pointsPerFrame * 3)
-    var sensitivity: Float = 5.0f
+    private var program = 0
+    private var textureId = 0
+    private val texWidth = 256
+    private val texHeight = 512
+    private val textureData = FloatArray(texWidth * texHeight)
+    private var writeRow = 0
+    
+    var sensitivity = 1.0f
+    var isSnapshotMode = false // A SNAPSHOT funkció, amit kértél
 
-    private val vertexShaderCode = """
-        attribute vec4 vPosition;
-        varying float vIntensity;
-        void main() {
-            gl_Position = vPosition;
-            gl_PointSize = 8.0; 
-            vIntensity = vPosition.y;
-        }
-    """.trimIndent()
+    private val vertexData = floatArrayOf(-1f, -1f, 0f, 1f, -1f, 0f, -1f, 1f, 0f, 1f, 1f, 0f)
 
-    private val fragmentShaderCode = """
-        precision mediump float;
-        varying float vIntensity;
-        void main() {
-            float y = (vIntensity + 0.6) * 1.5;
-            vec3 color = mix(vec3(0.0, 0.1, 0.4), vec3(0.0, 1.0, 0.8), clamp(y, 0.0, 0.5) * 2.0);
-            if(y > 0.5) color = mix(color, vec3(1.0, 0.0, 0.0), (y - 0.5) * 2.0);
-            gl_FragColor = vec4(color, 1.0);
+    override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        GLES30.glClearColor(0f, 0f, 0.05f, 1f)
+        
+        val vs = GLES30.glCreateShader(GLES30.GL_VERTEX_SHADER).also {
+            GLES30.glShaderSource(it, "#version 300 es\nlayout(location = 0) in vec3 aPos; out vec2 vTexCoord; void main() { gl_Position = vec4(aPos, 1.0); vTexCoord = aPos.xy * 0.5 + 0.5; }")
+            GLES30.glCompileShader(it)
         }
-    """.trimIndent()
+        val fs = GLES30.glCreateShader(GLES30.GL_FRAGMENT_SHADER).also {
+            GLES30.glShaderSource(it, "#version 300 es\nprecision highp float; uniform sampler2D uTexture; uniform int uWriteRow; in vec2 vTexCoord; out vec4 fragColor; void main() { float shiftedY = mod(vTexCoord.y + float(uWriteRow) / 512.0, 1.0); float val = texture(uTexture, vec2(vTexCoord.x, shiftedY)).r; vec3 color = mix(vec3(0.0, 0.0, 0.2), vec3(0.0, 1.0, 0.8), clamp(val * 2.0, 0.0, 1.0)); if(val > 0.5) color = mix(color, vec3(1.0, 0.0, 0.0), (val - 0.5) * 2.0); fragColor = vec4(color, 1.0); }")
+            GLES30.glCompileShader(it)
+        }
+        program = GLES30.glCreateProgram().also { GLES30.glAttachShader(it, vs); GLES30.glAttachShader(it, fs); GLES30.glLinkProgram(it) }
 
-    override fun onSurfaceCreated(unused: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0.0f, 0.0f, 0.05f, 1.0f)
-        val vs = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
-        val fs = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
-        program = GLES20.glCreateProgram().apply {
-            GLES20.glAttachShader(this, vs)
-            GLES20.glAttachShader(this, fs)
-            GLES20.glLinkProgram(this)
-        }
+        val t = IntArray(1); GLES30.glGenTextures(1, t, 0); textureId = t[0]
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_R32F, texWidth, texHeight, 0, GLES30.GL_RED, GLES30.GL_FLOAT, null)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
     }
 
-    fun updatePoints(fftData: FloatArray) {
-        // Régi adatok eltolása (Spektrogram effekt)
-        System.arraycopy(historyData, 0, historyData, pointsPerFrame * 3, (maxHistory - 1) * pointsPerFrame * 3)
-
-        for (i in 0 until pointsPerFrame) {
-            val x = (i.toFloat() / pointsPerFrame) * 2f - 1f
-            val rawAmp = Math.pow(fftData[i].toDouble(), 0.4).toFloat() * sensitivity * 0.8f
-            
-            historyData[i * 3] = x
-            historyData[i * 3 + 1] = rawAmp - 0.6f
-            historyData[i * 3 + 2] = 0f
+    // Ezt hívja meg az AudioAnalyzer
+    fun updatePoints(magnitudes: FloatArray) {
+        if (isSnapshotMode) return
+        for (i in 0 until texWidth) {
+            textureData[writeRow * texWidth + i] = (magnitudes.getOrElse(i) { 0f } / 50f) * sensitivity
         }
-
-        // Időbeli eltolás (Z tengely vagy X eltolás helyett most maradjon statikus ugrálás, 
-        // de az intenzitás maradandóbb lesz)
-        val bb = ByteBuffer.allocateDirect(historyData.size * 4).order(ByteOrder.nativeOrder())
-        vertexBuffer = bb.asFloatBuffer().put(historyData).apply { position(0) }
+        writeRow = (writeRow + 1) % texHeight
     }
 
-    override fun onDrawFrame(unused: GL10?) {
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        val buffer = vertexBuffer ?: return
-        GLES20.glUseProgram(program)
-        val pos = GLES20.glGetAttribLocation(program, "vPosition")
-        GLES20.glEnableVertexAttribArray(pos)
-        GLES20.glVertexAttribPointer(pos, 3, GLES20.GL_FLOAT, false, 12, buffer)
-        GLES20.glDrawArrays(GLES20.GL_POINTS, 0, maxHistory * pointsPerFrame)
+    override fun onDrawFrame(gl: GL10?) {
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+        GLES30.glUseProgram(program)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, 0, writeRow, texWidth, 1, GLES30.GL_RED, GLES30.GL_FLOAT, FloatBuffer.wrap(textureData, writeRow * texWidth, texWidth))
+        GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "uWriteRow"), writeRow)
+        val pos = GLES30.glGetAttribLocation(program, "aPos")
+        GLES30.glEnableVertexAttribArray(pos)
+        val bb = ByteBuffer.allocateDirect(vertexData.size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(vertexData).apply { position(0) }
+        GLES30.glVertexAttribPointer(pos, 3, GLES30.GL_FLOAT, false, 0, bb)
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
     }
 
-    override fun onSurfaceChanged(u: GL10?, w: Int, h: Int) = GLES20.glViewport(0, 0, w, h)
-    private fun loadShader(t: Int, s: String) = GLES20.glCreateShader(t).also { GLES20.glShaderSource(it, s); GLES20.glCompileShader(it) }
+    override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) = GLES30.glViewport(0, 0, w, h)
 }
-
