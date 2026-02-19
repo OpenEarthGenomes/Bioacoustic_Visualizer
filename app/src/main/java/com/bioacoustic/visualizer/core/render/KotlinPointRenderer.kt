@@ -13,32 +13,44 @@ class KotlinPointRenderer : GLSurfaceView.Renderer {
     private var vertexBuffer: FloatBuffer? = null
     private var program: Int = 0
     private var pointCount: Int = 0
-    
-    // Interaktív változó az érzékenységhez
     var sensitivity: Float = 1.0f
 
     private val vertexShaderCode = """
         attribute vec4 vPosition;
+        varying float vAmp;
         void main() {
             gl_Position = vPosition;
-            gl_PointSize = 10.0;
+            gl_PointSize = 14.0;
+            vAmp = vPosition.y; 
         }
     """.trimIndent()
 
     private val fragmentShaderCode = """
         precision mediump float;
+        varying float vAmp;
         void main() {
-            gl_FragColor = vec4(0.0, 0.9, 1.0, 1.0);
+            float val = (vAmp + 0.5) * 1.2; 
+            vec3 cold = vec3(0.0, 0.4, 1.0); // Sötétkék
+            vec3 warm = vec3(0.0, 1.0, 0.8); // Türkiz
+            vec3 hot = vec3(1.0, 0.1, 0.0);  // Vörös
+            
+            vec3 color;
+            if(val < 0.5) {
+                color = mix(cold, warm, val * 2.0);
+            } else {
+                color = mix(warm, hot, (val - 0.5) * 2.0);
+            }
+            gl_FragColor = vec4(color, 1.0);
         }
     """.trimIndent()
 
     override fun onSurfaceCreated(unused: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0.0f, 0.02f, 0.05f, 1.0f)
-        val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
-        val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
+        GLES20.glClearColor(0.01f, 0.03f, 0.05f, 1.0f)
+        val vs = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
+        val fs = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
         program = GLES20.glCreateProgram().also {
-            GLES20.glAttachShader(it, vertexShader)
-            GLES20.glAttachShader(it, fragmentShader)
+            GLES20.glAttachShader(it, vs)
+            GLES20.glAttachShader(it, fs)
             GLES20.glLinkProgram(it)
         }
     }
@@ -48,8 +60,9 @@ class KotlinPointRenderer : GLSurfaceView.Renderer {
         val vertices = FloatArray(pointCount * 3)
         for (i in fftData.indices) {
             vertices[i * 3] = (i.toFloat() / pointCount.toFloat()) * 2f - 1f
-            // Itt használjuk a sensitivity-t a függőleges kilengéshez!
-            vertices[i * 3 + 1] = (fftData[i] * sensitivity * 2.5f) - 0.5f 
+            // Logaritmikus felerősítés a valós idejű érzékeléshez
+            val logAmp = Math.log10(1.0 + fftData[i].toDouble()).toFloat() * sensitivity * 6f
+            vertices[i * 3 + 1] = logAmp - 0.7f
             vertices[i * 3 + 2] = 0f
         }
 
@@ -65,22 +78,14 @@ class KotlinPointRenderer : GLSurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         if (vertexBuffer == null) return
         GLES20.glUseProgram(program)
-        val positionHandle = GLES20.glGetAttribLocation(program, "vPosition")
-        GLES20.glEnableVertexAttribArray(positionHandle)
-        GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 12, vertexBuffer)
+        val pos = GLES20.glGetAttribLocation(program, "vPosition")
+        GLES20.glEnableVertexAttribArray(pos)
+        GLES20.glVertexAttribPointer(pos, 3, GLES20.GL_FLOAT, false, 12, vertexBuffer)
         GLES20.glDrawArrays(GLES20.GL_POINTS, 0, pointCount)
-        GLES20.glDisableVertexAttribArray(positionHandle)
     }
 
-    override fun onSurfaceChanged(unused: GL10?, width: Int, height: Int) {
-        GLES20.glViewport(0, 0, width, height)
-    }
-
-    private fun loadShader(type: Int, shaderCode: String): Int {
-        return GLES20.glCreateShader(type).also { shader ->
-            GLES20.glShaderSource(shader, shaderCode)
-            GLES20.glCompileShader(shader)
-        }
+    override fun onSurfaceChanged(u: GL10?, w: Int, h: Int) = GLES20.glViewport(0, 0, w, h)
+    private fun loadShader(t: Int, s: String) = GLES20.glCreateShader(t).also { 
+        GLES20.glShaderSource(it, s); GLES20.glCompileShader(it) 
     }
 }
-
