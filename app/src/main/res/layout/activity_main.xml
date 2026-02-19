@@ -1,13 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <android.view.SurfaceView
-        android:id="@+id/surfaceView"
+    <android.opengl.GLSurfaceView
+        android:id="@+id/glSurfaceView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-</FrameLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="#B3000000"
+        app:layout_constraintBottom_toBottomOf="parent">
 
+        <TextView
+            android:id="@+id/sensitivityLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Érzékenység: 1.0x"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <SeekBar
+            android:id="@+id/sensitivitySeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="200"
+            android:progress="100"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/colorModeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Színmód: Bio-Türkiz"
+            android:backgroundTint="#00E5FF"
+            android:textColor="#000000" />
+            
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
