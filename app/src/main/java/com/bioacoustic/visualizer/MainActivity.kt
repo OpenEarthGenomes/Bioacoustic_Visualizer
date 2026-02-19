@@ -17,7 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var glSurfaceView: GLSurfaceView
+    private lateinit var visualizerView: GLSurfaceView
     private val renderer = KotlinPointRenderer()
     private val audioAnalyzer = AudioAnalyzer()
 
@@ -26,14 +26,14 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_main)
 
-        glSurfaceView = findViewById(R.id.glSurfaceView)
-        glSurfaceView.setEGLContextClientVersion(2)
-        glSurfaceView.setRenderer(renderer)
+        visualizerView = findViewById(R.id.visualizerView)
+        visualizerView.setEGLContextClientVersion(2)
+        visualizerView.setRenderer(renderer)
 
         val label = findViewById<TextView>(R.id.sensitivityLabel)
         findViewById<SeekBar>(R.id.sensitivitySeekBar).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                // 0.5-től 20.0-ig terjedő skála a hatalmas boost érdekében
+                // Skála: 0.5x - 20.5x közötti erősítés
                 val boost = (progress / 50f) + 0.5f
                 renderer.sensitivity = boost
                 label.text = "BIO-BOOST: ${String.format("%.1f", boost)}x"
