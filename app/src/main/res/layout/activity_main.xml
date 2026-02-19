@@ -6,49 +6,49 @@
     android:layout_height="match_parent"
     android:background="#02050A">
 
-    <android.opengl.GLSurfaceView
-        android:id="@+id/glSurfaceView"
+    <com.bioacoustic.visualizer.core.render.ProVisualizerView
+        android:id="@+id/visualizerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="8dp"
+        app:layout_constraintStart_toStartOf="parent">
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="22k" android:textColor="#40FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="10k" android:textColor="#40FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="5k" android:textColor="#40FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="1k" android:textColor="#40FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="20Hz" android:textColor="#40FFFFFF" android:textSize="10sp" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="28dp"
-        android:background="#CC000000"
+        android:padding="24dp"
+        android:background="#E6000000"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <TextView
             android:id="@+id/sensitivityLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="BIO-GAIN: 1.0x"
+            android:text="BIO-SENSITIVITY (AUTO-BOOST)"
             android:textColor="#00E5FF"
-            android:fontFamily="sans-serif-condensed-medium"
-            android:textSize="14sp"
+            android:textSize="12sp"
             android:letterSpacing="0.1" />
 
         <SeekBar
             android:id="@+id/sensitivitySeekBar"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:max="400"
-            android:progress="100"
+            android:layout_height="48dp"
+            android:max="1000"
+            android:progress="500"
             android:progressTint="#00E5FF"
-            android:thumbTint="#00E5FF"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ANDROID 16 HYPER-LATENCY ENGINE"
-            android:textColor="#66FFFFFF"
-            android:textSize="10sp"
-            android:layout_gravity="center"
-            android:layout_marginTop="12dp"
-            android:letterSpacing="0.2" />
+            android:thumbTint="#00E5FF" />
             
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
-
