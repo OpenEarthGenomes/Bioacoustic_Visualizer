@@ -13,39 +13,34 @@ class KotlinPointRenderer : GLSurfaceView.Renderer {
     private var vertexBuffer: FloatBuffer? = null
     private var program: Int = 0
     private var pointCount: Int = 0
-    var sensitivity: Float = 1.0f
+    var sensitivity: Float = 5.0f // Magasabb alap-érzékenység
 
     private val vertexShaderCode = """
         attribute vec4 vPosition;
-        varying float vAmp;
+        varying float vIntensity;
         void main() {
             gl_Position = vPosition;
-            gl_PointSize = 14.0;
-            vAmp = vPosition.y; 
+            gl_PointSize = 12.0;
+            vIntensity = vPosition.y;
         }
     """.trimIndent()
 
     private val fragmentShaderCode = """
         precision mediump float;
-        varying float vAmp;
+        varying float vIntensity;
         void main() {
-            float val = (vAmp + 0.5) * 1.2; 
-            vec3 cold = vec3(0.0, 0.4, 1.0); // Sötétkék
-            vec3 warm = vec3(0.0, 1.0, 0.8); // Türkiz
-            vec3 hot = vec3(1.0, 0.1, 0.0);  // Vörös
+            float y = (vIntensity + 0.6) * 1.5; 
+            vec3 color = vec3(0.0);
+            if(y < 0.3) color = mix(vec3(0.0, 0.0, 0.2), vec3(0.0, 0.5, 1.0), y/0.3);
+            else if(y < 0.7) color = mix(vec3(0.0, 1.0, 0.5), vec3(1.0, 1.0, 0.0), (y-0.3)/0.4);
+            else color = mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 0.0, 0.0), (y-0.7)/0.3);
             
-            vec3 color;
-            if(val < 0.5) {
-                color = mix(cold, warm, val * 2.0);
-            } else {
-                color = mix(warm, hot, (val - 0.5) * 2.0);
-            }
             gl_FragColor = vec4(color, 1.0);
         }
     """.trimIndent()
 
     override fun onSurfaceCreated(unused: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(0.01f, 0.03f, 0.05f, 1.0f)
+        GLES20.glClearColor(0.0f, 0.01f, 0.02f, 1.0f)
         val vs = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
         val fs = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
         program = GLES20.glCreateProgram().also {
@@ -60,9 +55,12 @@ class KotlinPointRenderer : GLSurfaceView.Renderer {
         val vertices = FloatArray(pointCount * 3)
         for (i in fftData.indices) {
             vertices[i * 3] = (i.toFloat() / pointCount.toFloat()) * 2f - 1f
-            // Logaritmikus felerősítés a valós idejű érzékeléshez
-            val logAmp = Math.log10(1.0 + fftData[i].toDouble()).toFloat() * sensitivity * 6f
-            vertices[i * 3 + 1] = logAmp - 0.7f
+            
+            // AUTOMATIKUS ERŐSÍTÉS: Sqrt + Log skálázás
+            val rawAmp = Math.sqrt(fftData[i].toDouble()).toFloat() * sensitivity
+            val scaledAmp = (Math.log10(1.0 + rawAmp) * 2.0).toFloat()
+            
+            vertices[i * 3 + 1] = scaledAmp - 0.6f 
             vertices[i * 3 + 2] = 0f
         }
 
