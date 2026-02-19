@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="#02050A">
 
-    <com.bioacoustic.visualizer.core.render.ProVisualizerView
+    <android.opengl.GLSurfaceView
         android:id="@+id/visualizerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
@@ -17,11 +17,11 @@
         android:orientation="vertical"
         android:padding="8dp"
         app:layout_constraintStart_toStartOf="parent">
-        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="22k" android:textColor="#40FFFFFF" android:textSize="10sp" />
-        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="10k" android:textColor="#40FFFFFF" android:textSize="10sp" />
-        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="5k" android:textColor="#40FFFFFF" android:textSize="10sp" />
-        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="1k" android:textColor="#40FFFFFF" android:textSize="10sp" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="20Hz" android:textColor="#40FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="22kHz" android:textColor="#60FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="10kHz" android:textColor="#60FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="5kHz" android:textColor="#60FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" android:text="1kHz" android:textColor="#60FFFFFF" android:textSize="10sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="20Hz" android:textColor="#60FFFFFF" android:textSize="10sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -36,10 +36,10 @@
             android:id="@+id/sensitivityLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="BIO-SENSITIVITY (AUTO-BOOST)"
+            android:text="BIO-BOOST: 10.0x"
             android:textColor="#00E5FF"
-            android:textSize="12sp"
-            android:letterSpacing="0.1" />
+            android:fontFamily="sans-serif-medium"
+            android:textSize="12sp" />
 
         <SeekBar
             android:id="@+id/sensitivitySeekBar"
@@ -49,6 +49,5 @@
             android:progress="500"
             android:progressTint="#00E5FF"
             android:thumbTint="#00E5FF" />
-            
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
