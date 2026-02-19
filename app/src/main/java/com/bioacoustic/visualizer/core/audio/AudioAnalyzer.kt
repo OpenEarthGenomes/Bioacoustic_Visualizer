@@ -1,66 +1,46 @@
 package com.bioacoustic.visualizer.core.audio
 
-import android.annotation.SuppressLint
-import android.media.AudioFormat
-import android.media.AudioRecord
-import android.media.MediaRecorder
+import android.media.audiofx.Visualizer
 import com.bioacoustic.visualizer.core.render.KotlinPointRenderer
-import org.jtransforms.fft.FloatFFT_1D
-import kotlin.concurrent.thread
+import kotlin.math.sqrt
 
 class AudioAnalyzer(private val renderer: KotlinPointRenderer) {
-    private val sampleRate = 16000 // Stabilabb mintavételezés a teszthez
-    private val bufferSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-    private var audioRecord: AudioRecord? = null
-    private var isRunning = false
+    private var visualizer: Visualizer? = null
 
-    @SuppressLint("MissingPermission")
     fun start() {
-        if (isRunning) return
-        
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC, 
-            sampleRate,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            bufferSize
-        )
-
-        if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) return
-
-        isRunning = true
-        audioRecord?.startRecording()
-
-        thread(start = true, isDaemon = true) {
-            val readBuffer = ShortArray(512)
-            val fft = FloatFFT_1D(512.toLong())
-            val fftBuffer = FloatArray(1024)
-
-            while (isRunning) {
-                val readSize = audioRecord?.read(readBuffer, 0, 512) ?: 0
-                if (readSize > 0) {
-                    for (i in 0 until 512) {
-                        fftBuffer[i] = readBuffer[i].toFloat() / 32768f
+        try {
+            // A 0-s session az összes kimenő hangot elkapja
+            visualizer = Visualizer(0).apply {
+                captureSize = Visualizer.getCaptureSizeRange()[1]
+                setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
+                    override fun onFftDataCapture(v: Visualizer?, fft: ByteArray?, sr: Int) {
+                        fft?.let {
+                            val magnitudes = FloatArray(it.size / 2)
+                            for (i in 0 until magnitudes.size) {
+                                val r = it[i * 2].toInt()
+                                val im = it[i * 2 + 1].toInt()
+                                // Magnitúdó számítás (a te 3D-s terved alapján)
+                                magnitudes[i] = sqrt((r * r + im * im).toFloat())
+                            }
+                            // A renderer meglévő függvényét hívjuk
+                            renderer.updatePoints(magnitudes)
+                        }
                     }
-                    fft.realForward(fftBuffer)
-                    
-                    val magnitudes = FloatArray(256)
-                    for (i in 0 until 256) {
-                        val re = fftBuffer[2 * i]
-                        val im = fftBuffer[2 * i + 1]
-                        magnitudes[i] = Math.sqrt((re * re + im * im).toDouble()).toFloat()
-                    }
-                    // KÖZVETLEN ÁTADÁS A RENDERERNEK (Nincs Flow késleltetés)
-                    renderer.updatePoints(magnitudes)
-                }
+                    override fun onWaveFormDataCapture(v: Visualizer?, w: ByteArray?, sr: Int) {}
+                }, Visualizer.getMaxCaptureRate() / 2, false, true)
+                enabled = true
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
     fun stop() {
-        isRunning = false
-        audioRecord?.stop()
-        audioRecord?.release()
-        audioRecord = null
+        visualizer?.apply {
+            enabled = false
+            release()
+        }
+        visualizer = null
     }
 }
+
