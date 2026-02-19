@@ -12,14 +12,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.bioacoustic.visualizer.core.audio.AudioAnalyzer
 import com.bioacoustic.visualizer.core.render.KotlinPointRenderer
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var visualizerView: GLSurfaceView
     private val renderer = KotlinPointRenderer()
-    private val audioAnalyzer = AudioAnalyzer()
+    // Átadjuk a renderert az analyzernek a közvetlen kapcsolathoz
+    private val audioAnalyzer = AudioAnalyzer(renderer)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,8 +31,7 @@ class MainActivity : AppCompatActivity() {
         val label = findViewById<TextView>(R.id.sensitivityLabel)
         findViewById<SeekBar>(R.id.sensitivitySeekBar).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                // Skála: 0.5x - 20.5x közötti erősítés
-                val boost = (progress / 50f) + 0.5f
+                val boost = (progress / 10f) + 1.0f // Még durvább erősítés skála
                 renderer.sensitivity = boost
                 label.text = "BIO-BOOST: ${String.format("%.1f", boost)}x"
             }
@@ -45,17 +42,15 @@ class MainActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 101)
         } else {
-            startAudioCapture()
+            audioAnalyzer.start()
         }
     }
 
-    private fun startAudioCapture() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            audioAnalyzer.fftData.collect { data ->
-                renderer.updatePoints(data)
-            }
+    override fun onRequestPermissionsResult(rc: Int, p: Array<out String>, res: IntArray) {
+        super.onRequestPermissionsResult(rc, p, res)
+        if (rc == 101 && res.isNotEmpty() && res[0] == PackageManager.PERMISSION_GRANTED) {
+            audioAnalyzer.start()
         }
-        audioAnalyzer.start()
     }
 
     override fun onDestroy() {
