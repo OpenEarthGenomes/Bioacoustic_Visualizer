@@ -23,7 +23,9 @@ class MainActivity : AppCompatActivity() {
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1001)
-        } else { initApp() }
+        } else {
+            initApp()
+        }
     }
 
     private fun initApp() {
@@ -32,16 +34,24 @@ class MainActivity : AppCompatActivity() {
         visualizerView?.setRenderer(renderer)
         audioAnalyzer = AudioAnalyzer(renderer)
 
+        // Itt volt a hiba esélyes helye - a biztonság kedvéért null-checkel
         val boostText = findViewById<TextView>(R.id.boostText)
         findViewById<SeekBar>(R.id.sensitivitySeekBar)?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, p2: Boolean) {
                 val boost = progress / 10.0f
                 renderer.sensitivity = boost
-                boostText.text = "BIO-BOOST: ${String.format("%.1fx", boost)}"
+                boostText?.text = "BIO-BOOST: ${String.format("%.1fx", boost)}"
             }
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            initApp()
+        }
     }
 
     override fun onResume() { super.onResume(); audioAnalyzer?.start() }
