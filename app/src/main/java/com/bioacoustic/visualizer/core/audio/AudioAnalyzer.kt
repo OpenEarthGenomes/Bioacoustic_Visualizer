@@ -1,40 +1,50 @@
 package com.bioacoustic.visualizer.core.audio
 
-import android.media.audiofx.Visualizer
+import android.annotation.SuppressLint
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
 import com.bioacoustic.visualizer.core.render.KotlinPointRenderer
+import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
 class AudioAnalyzer(private val renderer: KotlinPointRenderer) {
-    private var visualizer: Visualizer? = null
+    private var isRunning = false
+    private var audioRecord: AudioRecord? = null
+    private val sampleRate = 44100
+    private val bufferSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT)
 
+    @SuppressLint("MissingPermission")
     fun start() {
-        try {
-            visualizer = Visualizer(0).apply {
-                captureSize = Visualizer.getCaptureSizeRange()[1]
-                setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
-                    override fun onFftDataCapture(v: Visualizer?, fft: ByteArray?, sr: Int) {
-                        fft?.let {
-                            val magnitudes = FloatArray(it.size / 2)
-                            for (i in 0 until magnitudes.size) {
-                                val r = it[i * 2].toInt()
-                                val im = it[i * 2 + 1].toInt()
-                                magnitudes[i] = sqrt((r * r + im * im).toFloat())
-                            }
-                            renderer.updatePoints(magnitudes)
-                        }
-                    }
-                    override fun onWaveFormDataCapture(v: Visualizer?, w: ByteArray?, sr: Int) {}
-                }, Visualizer.getMaxCaptureRate() / 2, false, true)
-                enabled = true
+        if (isRunning) return
+        isRunning = true
+        
+        thread {
+            audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_FLOAT,
+                bufferSize
+            )
+
+            val audioData = FloatArray(bufferSize)
+            audioRecord?.startRecording()
+
+            while (isRunning) {
+                val read = audioRecord?.read(audioData, 0, bufferSize, AudioRecord.READ_BLOCKING) ?: 0
+                if (read > 0) {
+                    // Egyszerűsített FFT-szerű vizualizáció a gyorsasághoz
+                    renderer.updatePoints(audioData) 
+                }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
     fun stop() {
-        visualizer?.enabled = false
-        visualizer?.release()
-        visualizer = null
+        isRunning = false
+        audioRecord?.stop()
+        audioRecord?.release()
+        audioRecord = null
     }
 }
